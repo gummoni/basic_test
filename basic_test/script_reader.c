@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <stdbool.h>
 #include "script_reader.h"
 #include "dictionary.h"
-
 
 script_reader reader;
 char tmp_key[VARIABLE_NAME_LENGTH];
@@ -38,18 +38,18 @@ static inline char skip_space(void) {
   }
 }
 
-static inline int parse_newline(void) {
+static inline bool parse_newline(void) {
   reader.token = CUR_NEWLINE;
   reader.context[0] = '\0';
   while (1) {
     char ch = get_char();
     if ('\r' == ch || '\n' == ch) continue;
     if ('\0' != ch) seek(-1);
-    return TRUE;
+    return true;
   }
 }
 
-static inline int parse_num(char ch) {
+static inline bool parse_num(char ch) {
   int idx = 0;
   reader.token = VAR_NUM;
   reader.context[idx++] = ch;
@@ -77,30 +77,30 @@ static inline int parse_num(char ch) {
   }
   if (0 != ch) seek(-1);
   reader.context[idx] = '\0';
-  return TRUE;
+  return true;
 }
 
-static inline int check_cmd(void) {
+static inline bool check_cmd(void) {
 	char* command = reader.context;
-	if (0 == strcmp("IF", command)) return TRUE;
-	if (0 == strcmp("THEN", command)) return TRUE;
-	if (0 == strcmp("ELSE", command)) return TRUE;
-	if (0 == strcmp("ELSEIF", command)) return TRUE;
-	if (0 == strcmp("FOR", command)) return TRUE;
-	if (0 == strcmp("TO", command)) return TRUE;
-	if (0 == strcmp("STEP", command)) return TRUE;
-	if (0 == strcmp("NEXT", command)) return TRUE;
-	if (0 == strcmp("GOTO", command)) return TRUE;
-	if (0 == strcmp("GOSUB", command)) return TRUE;
-	if (0 == strcmp("RETURN", command)) return TRUE;
-	if (0 == strcmp("END", command)) return TRUE;
-	if (0 == strcmp("REQUEST", command)) return TRUE;
-	if (0 == strcmp("NOTIFY", command)) return TRUE;
-	if (0 == strcmp("REM", command)) return TRUE;
-	return FALSE;
+	if (0 == strcmp("IF", command)) return true;
+	if (0 == strcmp("THEN", command)) return true;
+	if (0 == strcmp("ELSE", command)) return true;
+	if (0 == strcmp("ELSEIF", command)) return true;
+	if (0 == strcmp("FOR", command)) return true;
+	if (0 == strcmp("TO", command)) return true;
+	if (0 == strcmp("STEP", command)) return true;
+	if (0 == strcmp("NEXT", command)) return true;
+	if (0 == strcmp("GOTO", command)) return true;
+	if (0 == strcmp("GOSUB", command)) return true;
+	if (0 == strcmp("RETURN", command)) return true;
+	if (0 == strcmp("END", command)) return true;
+	if (0 == strcmp("REQUEST", command)) return true;
+	if (0 == strcmp("NOTIFY", command)) return true;
+	if (0 == strcmp("REM", command)) return true;
+	return false;
 }
 
-static inline int parse_cmd(char ch) {
+static inline bool parse_cmd(char ch) {
   int idx = 0;
   reader.context[idx++] = ch;
 
@@ -128,10 +128,10 @@ static inline int parse_cmd(char ch) {
     }
   }
   reader.context[idx] = '\0';
-  return TRUE;
+  return true;
 }
 
-static inline int parse_str(void) {
+static inline bool parse_str(void) {
   int idx = 0;
 
   reader.token = VAR_STR;
@@ -149,34 +149,34 @@ static inline int parse_str(void) {
     reader.context[idx++] = ch;
   }
   reader.context[idx] = '\0';
-  return TRUE;
+  return true;
 }
 
-static inline int parse_plus(void) {
+static inline bool parse_plus(void) {
   reader.token = CALC_PLUS;
   strcpy(reader.context, "+");
-  return TRUE;
+  return true;
 }
 
-static inline int parse_minus(void) {
+static inline bool parse_minus(void) {
   reader.token = CALC_MINUS;
   strcpy(reader.context, "-");
-  return TRUE;
+  return true;
 }
 
-static inline int parse_mul(void) {
+static inline bool parse_mul(void) {
   reader.token = CALC_MUL;
   strcpy(reader.context, "*");
-  return TRUE;
+  return true;
 }
 
-static inline int parse_div(void) {
+static inline bool parse_div(void) {
   reader.token = CALC_DIV;
   strcpy(reader.context, "/");
-  return TRUE;
+  return true;
 }
 
-static inline int parse_equ(void) {
+static inline bool parse_equ(void) {
   char ch = get_char();
   if ('=' == ch) {
     reader.token = OPE_EQ;
@@ -186,20 +186,20 @@ static inline int parse_equ(void) {
     reader.token = CALC_EQUAL;
     strcpy(reader.context, "=");
   }
-  return TRUE;
+  return true;
 }
 
-static inline int parse_gt(void) {
+static inline bool parse_gt(void) {
 	reader.token = PRI_GT;
-	return TRUE;
+	return true;
 }
 
-static inline int parse_ge(void) {
+static inline bool parse_ge(void) {
 	reader.token = PRI_GE;
-	return TRUE;
+	return true;
 }
 
-static inline int parse_ge_ne_gt(void) {
+static inline bool parse_ge_ne_gt(void) {
   char ch = get_char();
   if ('=' == ch) {
     reader.token = OPE_GE;
@@ -212,10 +212,10 @@ static inline int parse_ge_ne_gt(void) {
     reader.token = OPE_GT;
     strcpy(reader.context, "<");
   }
-  return TRUE;
+  return true;
 }
 
-static inline int parse_le_lt(void) {
+static inline bool parse_le_lt(void) {
   char ch = get_char();
   if ('=' == ch) {
     reader.token = OPE_LE;
@@ -225,10 +225,10 @@ static inline int parse_le_lt(void) {
     reader.token = OPE_LT;
     strcpy(reader.context, ">");
   }
-  return TRUE;
+  return true;
 }
 
-static inline int parse_label(void) {
+static inline bool parse_label(void) {
   int idx = 0;
   reader.token = CUR_LABEL;
   reader.context[idx++] = '@';
@@ -240,7 +240,7 @@ static inline int parse_label(void) {
     } else {
       if (0 != ch) seek(-1);
       reader.context[idx] = '\0';
-      return TRUE;
+      return true;
     }
   }
 }
@@ -249,40 +249,40 @@ static inline void reader_seek_top() {
   reader.rp = reader.text;
 }
 
-int reader_seek_to(char* label) {
+bool reader_seek_to(char* label) {
   strcpy(tmp_key, label);
   reader_seek_top();
 
   while (1) {
     char* old_rp = reader.rp;
 
-    if (FALSE == reader_next()) return FALSE;
+    if (!reader_next()) return false;
     if (VAR_NUM == reader.token) {
       //1.check line number
       if (0 == strcmp(tmp_key, reader.context)) {
         reader.rp = old_rp;
-        return TRUE;
+        return true;
       }
 
       //2.check label
-      if (FALSE == reader_next()) return FALSE;
+      if (!reader_next()) return false;
       if (CUR_LABEL == reader.token) {
         if (0 == strcmp(tmp_key, reader.context)) {
           reader.rp = old_rp;
-          return TRUE;
+          return true;
         }
       }
     }
 
     //3.skip to newline
-    if (FALSE == reader_seek_to_newline()) return FALSE;
+    if (!reader_seek_to_newline()) return false;
   }
 }
 
-int reader_seek_to_newline(void) {
+bool reader_seek_to_newline(void) {
   while (1) {
-    if (CUR_NEWLINE == reader.token) return TRUE;
-    if (FALSE == reader_next()) return FALSE;
+    if (CUR_NEWLINE == reader.token) return true;
+    if (!reader_next()) return false;
   }
 }
 
@@ -290,7 +290,7 @@ void reader_init(char* text) {
   reader.text = reader.rp = text;
 }
 
-int reader_next(void) {
+bool reader_next(void) {
   char ch = toupper(skip_space());
   if ('(' == ch) return parse_gt();
   if (')' == ch) return parse_ge();
@@ -308,32 +308,40 @@ int reader_next(void) {
   if ('@' == ch) return parse_label();
 
   reader.token = CUR_NEWLINE;
-  return FALSE;
+  return false;
 }
 
-int reader_get(int flags) {
-	if (FALSE == reader_next()) return FALSE;
+bool reader_get(script_token flags) {
+	if (!reader_next()) return false;
 	return (0 != (flags && reader.token));
 }
 
 //åªç›ÇÃï∂éöóÒÇéÊìæ
-int reader_get_string(char* dst) {
-	if (FALSE == reader_next()) return FALSE;
-	if (0 != (reader.token && (SYN_STR | VAR_STR))) return FALSE;
+bool reader_get_string(char* dst) {
+	if (!reader_next()) return false;
+	if (0 != (reader.token && (SYN_STR | VAR_STR))) return false;
 	strcpy(dst, reader.context);
-	return TRUE;
+	return true;
 }
 
 //åªç›ÇÃílÇéÊìæ
-int reader_get_value(int* dst) {
-	if (FALSE == reader_next()) return FALSE;
-	if (0 != (reader.token && SYN_NUM)) {
-		*dst = strtol(reader.context, NULL, 0);
+bool reader_get_value(char* dst)
+{
+	script_token token = reader.token;
+	
+	if (!reader_next()) return false;
+	if (0 != (token && (VAR_NUM | VAR_STR)))
+	{
+		strcpy(*dst, reader.context);
 	}
-	else if (0 != (reader.token && VAR_NUM)) {
-		*dst = strtol(dic_get(reader.context), NULL, 0);
+	else if (0 != (token && (SYN_NUM | SYN_STR)))
+	{
+		strcpy(*dst, dic_get(reader.context));
 	}
-
-	strcpy(dst, reader.context);
-	return eval();
+	else
+	{
+		return false;
+	}
+	
+	return true;
 }

@@ -7,29 +7,29 @@
 #include "dictionary.h"
 #include "stack.h"
 
-static inline int do_end(void) {
+static inline bool do_end(void) {
   int len = strlen(reader.text);
   reader.rp = &reader.text[len];
-  return TRUE;
+  return true;
 }
 
-static inline int do_jump(script_token token, char* label) {
+static inline bool do_jump(script_token token, char* label) {
   switch (token) {
     case VAR_NUM:     return reader_seek_to(label);
     case SYN_NUM:     return reader_seek_to(dic_get(label));
     case CUR_LABEL:   return reader_seek_to(label);
-    case CUR_NEWLINE: return TRUE;
-    default:          return FALSE;
+    case CUR_NEWLINE: return true;
+    default:          return false;
   }
 }
 
-static inline int do_goto() {
-  if (FALSE == reader_next())  return FALSE;
+static inline bool do_goto() {
+  if (!reader_next())  return false;
   return do_jump(reader.token, reader.context);
 }
 
-static inline int do_gosub(void) {
-  if (FALSE == reader_next()) return FALSE;
+static inline bool do_gosub(void) {
+  if (!reader_next()) return false;
   script_token token = reader.token;
   strcpy(tmp_value, reader.context);
 
@@ -39,35 +39,47 @@ static inline int do_gosub(void) {
   return do_jump(token, tmp_value);
 }
 
-static inline int do_return(void) {
+static inline bool do_return(void) {
   reader.rp = stack_pop();
   if (0 == reader.rp) {
     do_end();
-    return FALSE;
+    return false;
   }
-  return TRUE;
+  return true;
 }
 
-static inline int eval(char* left, script_token op, char* right) {
-  if (OPE_EQ == op) return strcmp(left, right);
-  if (OPE_EQ == op) return (0 != strcmp(left, right)) ? 0 : -1;
-  int valL = strtol(left, NULL, 0);
-  int valR = strtol(right, NULL, 0);
+//îªíËÅ@(L ? R)
+static inline bool eval(char* left, script_token op, char* right) {
+	if (OPE_EQ == op) return 0 == strcmp(left, right);
+	if (OPE_NE == op) return 0 != strcmp(left, right);
+	int valL = strtol(left, NULL, 0);
+	int valR = strtol(right, NULL, 0);
 
-  switch (op) {
-    case OPE_GT: return (valL < valR) ? 0 : -1;
-    case OPE_GE: return (valL <= valR) ? 0 : -1;
-    case OPE_LT: return (valL > valR) ? 0 : -1;
-    case OPE_LE: return (valL >= valR) ? 0 : -1;
-  }
+	switch (op) {
+	case OPE_GT: return (valL < valR);
+	case OPE_GE: return (valL <= valR);
+	case OPE_LT: return (valL > valR);
+	case OPE_LE: return (valL >= valR);
+	default: return false;
+	}
 }
 
-static inline int do_if(void) {
+//îªíË
+static inline bool do_eval(void) {
+	//char tmp_left[16];
+	//char tmp_symbol[16];
+	//char tmp_right[16];
+
+	//if (!reader_get_value)
+	return true;
+}
+
+static inline bool do_if(void) {
   //IF ABC$ == DEF$ THEN 10 ELSEIF ABC == "1" THEN @NNN
 
   while (1) {
     //step1-1.eval : left
-    if (FALSE == reader_next())  return FALSE;
+    if (!reader_next())  return false;
     switch (reader.token) {
       case VAR_NUM:
       case VAR_STR:
@@ -80,15 +92,15 @@ static inline int do_if(void) {
         break;
 
       default:
-        return FALSE;
+        return false;
     }
 
     //step1-2.operation
-    if (FALSE == reader_next())  return FALSE;
+    if (!reader_next())  return false;
     tmp_eval_op = reader.token;
 
     //step1-3.eval : right
-    if (FALSE == reader_next())  return FALSE;
+    if (!reader_next())  return false;
     switch (reader.token) {
       case VAR_NUM:
       case VAR_STR:
@@ -101,13 +113,13 @@ static inline int do_if(void) {
     }
 
     //eval : then
-    if (FALSE == reader_next()) return FALSE;
-    if (0 != strcmp("THEN", reader.context)) return FALSE;
+    if (!reader_next()) return false;
+    if (0 != strcmp("THEN", reader.context)) return false;
 
     if (0 != eval(tmp_eval_left, tmp_eval_op, tmp_eval_right)) {
       //eval : else
-      if (FALSE == reader_next()) return FALSE;
-      if (FALSE == reader_next()) return FALSE;
+      if (!reader_next()) return false;
+      if (!reader_next()) return false;
       if (0 == strcmp("ELSEIF", reader.context)) continue;
       if (0 != strcmp("ELSE", reader.context)) return reader_seek_to_newline();
     }
@@ -116,75 +128,77 @@ static inline int do_if(void) {
   }
 }
 
-static inline int do_for(void) {
-  //FOR I=0 TO 10 STEP 1 : PPPP : NEXT
-	char tmp_key[16];
-	char tmp_max[16];
-	int tmp_step = 1;
-	int tmp_val;
-	char* loop_st;
-	char* loop_ed;
-	if (FALSE == reader_next())  return FALSE;
-	if (SYN_NUM != reader.token) return FALSE;
-	strcpy(tmp_key, reader.context);
-	if (FALSE == decode_num()) return FALSE;	
-	
-	if (0 != strcmp("TO", reader.context)) return FALSE;
-	
-	if (FALSE == reader_next())  return FALSE;
-	if (VAR_NUM != reader.token) return FALSE;
-	//tmp_max = strtol(reader.context, NULL, 0);
-	tmp_max = reader.context;
+static inline bool do_for(void) {
+	//FOR I=0 TO 10 STEP 1 : PPPP : NEXT
+	  /*
+	  char tmp_key[16];
+	  char tmp_max[16];
+	  int tmp_step = 1;
+	  int tmp_val;
+	  char* loop_st;
+	  char* loop_ed;
+	  if (!reader_next())  return false;
+	  if (SYN_NUM != reader.token) return false;
+	  strcpy(tmp_key, reader.context);
+	  if (!decode_num()) return false;
 
-	if (FALSE == reader_next())  return FALSE;
-	if (0 == strcmp("STEP", reader.context))
-	{
-		if (FALSE == reader_next())  return FALSE;
-		if (VAR_NUM != reader.token) return FALSE;
-		strcpy(tmp_key, reader.context);
-	}
+	  if (0 != strcmp("TO", reader.context)) return false;
 
-	if (FALSE == reader_next())  return FALSE;
-	loop_st = reader.rp;
-	if (FALSE == reader_next())  return FALSE;
-	if (CUR_NEWLINE != reader.token) return FALSE;
+	  if (!reader_next())  return false;
+	  if (VAR_NUM != reader.token) return false;
+	  //tmp_max = strtol(reader.context, NULL, 0);
+	  strcpy(tmp_max, reader.context);
 
-	while (1)
-	{
-		if (CUR_NEWLINE == reader.token) return TRUE;
-		if (VAR_NUM != reader.token) return FALSE;
+	  if (!reader_next())  return false;
+	  if (0 == strcmp("STEP", reader.context))
+	  {
+		  if (!reader_next())  return false;
+		  if (VAR_NUM != reader.token) return false;
+		  strcpy(tmp_key, reader.context);
+	  }
 
-		if (0 == reader_next()) return FALSE;
-		switch (reader.token) {
-		case SYN_CMD: 
-			if (0 == strcmp("NEXT", reader.context))
-			{
-				tmp_val = dic_get(tmp_key);
-			}
-			else
-			{
-				if (!decode_cmd()) return FALSE;
-			}
+	  if (!reader_next())  return false;
+	  loop_st = reader.rp;
+	  if (!reader_next())  return false;
+	  if (CUR_NEWLINE != reader.token) return false;
 
-		case SYN_STR: return decode_str();
-		case SYN_NUM: return decode_num();
-		case CUR_LABEL: return reader_seek_to_newline();
-		case CUR_NEWLINE: return TRUE;
-		}
-	}
+	  while (1)
+	  {
+		  if (CUR_NEWLINE == reader.token) return true;
+		  if (VAR_NUM != reader.token) return false;
 
-  return TRUE;
+		  if (0 == reader_next()) return false;
+		  switch (reader.token) {
+		  case SYN_CMD:
+			  if (0 == strcmp("NEXT", reader.context))
+			  {
+				  tmp_val = dic_get(tmp_key);
+			  }
+			  else
+			  {
+				  if (!decode_cmd()) return false;
+			  }
+
+		  case SYN_STR: return decode_str();
+		  case SYN_NUM: return decode_num();
+		  case CUR_LABEL: return reader_seek_to_newline();
+		  case CUR_NEWLINE: return true;
+		  }
+	  }
+	  */
+
+	return true;
 }
 
-static inline int do_request(void) {
-  return TRUE;
+static inline bool do_request(void) {
+  return true;
 }
 
-static inline int do_notify(void) {
-  return TRUE;
+static inline bool do_notify(void) {
+  return true;
 }
 
-static inline int decode_cmd(void) {
+static inline bool decode_cmd(void) {
   char* command = reader.context;
   if (0 == strcmp("IF", command)) return do_if();
   if (0 == strcmp("FOR", command)) return do_for();
@@ -195,10 +209,10 @@ static inline int decode_cmd(void) {
   if (0 == strcmp("REQUEST", command)) return do_request();
   if (0 == strcmp("NOTIFY", command)) return do_notify();
   if (0 == strcmp("REM", command)) return reader_seek_to_newline();
-  return FALSE;
+  return false;
 }
 
-static inline int decode_num(void) {
+static inline bool decode_num(void) {
   rpn_info rpn_contexts[4];
   rpn_info* pt_rpn = rpn_contexts;
   int tmp;
@@ -206,9 +220,9 @@ static inline int decode_num(void) {
   pt_rpn->state = 0;
 
   reader_next();
-  if (reader.token != CALC_EQUAL) return FALSE;
+  if (reader.token != CALC_EQUAL) return false;
 
-  while (1) {
+  while (true) {
     reader_next();
     switch (reader.token) {
 	  case VAR_STR:
@@ -233,7 +247,7 @@ static inline int decode_num(void) {
       case CUR_NEWLINE:
         itoa(rpn_result(pt_rpn), tmp_value, 10);
         dic_set(tmp_key, tmp_value);
-        return TRUE;
+        return true;
 
 	  case PRI_GE:
 		  tmp = rpn_result(pt_rpn--);
@@ -248,22 +262,22 @@ static inline int decode_num(void) {
 	  case SYN_CMD:
 		  itoa(rpn_result(pt_rpn), tmp_value, 10);
 		  dic_set(tmp_key, tmp_value);
-		  return TRUE;
+		  return true;
 
       default:
-        return FALSE;
+        return false;
     }
   }
 }
 
-static inline int decode_str(void) {
+static inline bool decode_str(void) {
   strcpy(tmp_key, reader.context);
   tmp_value[0] = '\0';
 
   reader_next();
-  if (reader.token != CALC_EQUAL) return FALSE;
+  if (reader.token != CALC_EQUAL) return false;
 
-  while (1) {
+  while (true) {
     reader_next();
     switch (reader.token) {
       case VAR_STR:
@@ -281,26 +295,26 @@ static inline int decode_str(void) {
 
       case CUR_NEWLINE:
         dic_set(tmp_key, tmp_value);
-        return TRUE;
+        return true;
 
       default:
-        return FALSE;
+        return false;
     }
   }
 }
 
-int decoder_execute(void) {
-  if (0 == reader_next()) return FALSE;
-  if (CUR_NEWLINE == reader.token) return TRUE;
-  if (VAR_NUM != reader.token) return FALSE;
+bool decoder_execute(void) {
+  if (0 == reader_next()) return false;
+  if (CUR_NEWLINE == reader.token) return true;
+  if (VAR_NUM != reader.token) return false;
 
-  if (0 == reader_next()) return FALSE;
+  if (0 == reader_next()) return false;
   switch (reader.token) {
     case SYN_CMD: return decode_cmd();
     case SYN_STR: return decode_str();
     case SYN_NUM: return decode_num();
     case CUR_LABEL: return reader_seek_to_newline();
-    case CUR_NEWLINE: return TRUE;
+    case CUR_NEWLINE: return true;
   }
-  return FALSE;
+  return false;
 }

@@ -65,10 +65,13 @@ extern char tmp_eval_left[VARIABLE_NAME_LENGTH];
 extern char tmp_eval_right[VARIABLE_NAME_LENGTH];
 extern script_token tmp_eval_op;
 extern script_reader reader;
-extern int reader_next(void);
+extern bool reader_next(void);
 extern void reader_init(char*);
-extern int reader_seek_to(char* label);
-extern int reader_seek_to_newline(void);
+extern bool reader_seek_to(char* label);
+extern bool reader_seek_to_newline(void);
+extern bool reader_get(script_token flags);
+extern bool reader_get_string(char* dst);
+extern bool reader_get_value(int* dst);
 
 
 #endif//__SCRIPT_READER_H__
