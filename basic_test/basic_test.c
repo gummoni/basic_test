@@ -1,8 +1,5 @@
 #include <stdio.h>
-#include "stack.h"
 #include "dictionary.h"
-#include "rpn.h"
-#include "script_reader.h"
 #include "script_decoder.h"
 
 static char* script_text = "10 I=5+(3*(1+2)+1)*2+4\n\

@@ -151,21 +151,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="cmd.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="dictionary.h" />
     <ClInclude Include="pch.h" />
-    <ClInclude Include="rpn.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="script_decoder.h" />
     <ClInclude Include="script_reader.h" />
     <ClInclude Include="stack.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basic_test.c" />
+    <ClCompile Include="cmd.c" />
     <ClCompile Include="dictionary.c" />
-    <ClCompile Include="rpn.c" />
     <ClCompile Include="script_decoder.c" />
     <ClCompile Include="script_reader.c" />
     <ClCompile Include="stack.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="basic_test.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -51,13 +51,56 @@ typedef enum {
   PRI_GE = 0x00400000,
 } script_token;
 
+//ƒRƒ}ƒ“ƒhˆê——
+extern char* STR_CMD_LIST[];
+typedef enum
+{
+	CMD_NONE,
+	CMD_IF,
+	CMD_THEN,
+	CMD_ELSE,
+
+	CMD_FOR,
+	CMD_TO,
+	CMD_STEP,
+	CMD_NEXT,
+
+	CMD_GOTO,
+	CMD_GOSUB,
+	CMD_RETURN,
+	CMD_END,
+} CMD_IDX;
+
+//extern char* ERR_LIST[];
+typedef enum
+{
+	ERR_NONE,
+	ERR_SYNTAX_ERROR,
+} ERR_CODE;
 
 typedef struct {
-  char* rp;                           // read pointer
-  char* text;                         // text pointer
-  script_token token;                 // token
-  char context[VARIABLE_NAME_LENGTH]; // command / variable:number / variable:string
+	int no;									// line number
+	ERR_CODE err;							// error code
+	char* rp;								// read pointer
+	char* text;								// text pointer
+	script_token token;						// token
+	CMD_IDX cmd;							// cmd
+	char context[VARIABLE_NAME_LENGTH];		// command / variable:number / variable:string
 } script_reader;
+
+typedef struct
+{
+	int left;
+	int right;
+	script_token old_op;
+	script_token cur_op;
+	int state;
+} rpn_info;
+
+
+extern bool rpn_num(void);
+extern bool rpn_str(void);
+extern bool rpn_eval(char* left, script_token op, char* right);
 
 extern char tmp_key[VARIABLE_NAME_LENGTH];
 extern char tmp_value[VARIABLE_NAME_LENGTH];
@@ -69,9 +112,7 @@ extern bool reader_next(void);
 extern void reader_init(char*);
 extern bool reader_seek_to(char* label);
 extern bool reader_seek_to_newline(void);
-extern bool reader_get(script_token flags);
-extern bool reader_get_string(char* dst);
-extern bool reader_get_value(int* dst);
+extern bool reader_get_value(char* dst);
 
 
 #endif//__SCRIPT_READER_H__

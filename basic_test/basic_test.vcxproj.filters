@@ -24,9 +24,6 @@
     <ClInclude Include="dictionary.h">
       <Filter>ソース ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="rpn.h">
-      <Filter>ソース ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="script_decoder.h">
       <Filter>ソース ファイル</Filter>
     </ClInclude>
@@ -36,15 +33,18 @@
     <ClInclude Include="stack.h">
       <Filter>ソース ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="cmd.h">
+      <Filter>ソース ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basic_test.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="dictionary.c">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="rpn.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="script_decoder.c">
@@ -56,5 +56,13 @@
     <ClCompile Include="stack.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="cmd.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="basic_test.rc">
+      <Filter>リソース ファイル</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
