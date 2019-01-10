@@ -59,6 +59,7 @@ typedef enum
 	CMD_IF,
 	CMD_THEN,
 	CMD_ELSE,
+	CMD_ELSEIF,
 
 	CMD_FOR,
 	CMD_TO,
@@ -76,6 +77,7 @@ typedef enum
 {
 	ERR_NONE,
 	ERR_SYNTAX_ERROR,
+	ERR_EOF,
 } ERR_CODE;
 
 typedef struct {
@@ -98,9 +100,12 @@ typedef struct
 } rpn_info;
 
 
-extern bool rpn_num(void);
+extern bool decoder_execute(void);
+
+extern bool rpn_num(int* result);
 extern bool rpn_str(void);
-extern bool rpn_eval(char* left, script_token op, char* right);
+extern bool rpn_judge(void);
+
 
 extern char tmp_key[VARIABLE_NAME_LENGTH];
 extern char tmp_value[VARIABLE_NAME_LENGTH];
@@ -110,9 +115,7 @@ extern script_token tmp_eval_op;
 extern script_reader reader;
 extern bool reader_next(void);
 extern void reader_init(char*);
-extern bool reader_seek_to(char* label);
 extern bool reader_seek_to_newline(void);
-extern bool reader_get_value(char* dst);
 
 
 #endif//__SCRIPT_READER_H__

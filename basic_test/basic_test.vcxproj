@@ -156,7 +156,6 @@
     <ClInclude Include="dictionary.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="script_decoder.h" />
     <ClInclude Include="script_reader.h" />
     <ClInclude Include="stack.h" />
   </ItemGroup>
@@ -164,7 +163,6 @@
     <ClCompile Include="basic_test.c" />
     <ClCompile Include="cmd.c" />
     <ClCompile Include="dictionary.c" />
-    <ClCompile Include="script_decoder.c" />
     <ClCompile Include="script_reader.c" />
     <ClCompile Include="stack.c" />
   </ItemGroup>

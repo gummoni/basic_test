@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "dictionary.h"
-#include "script_decoder.h"
+#include "script_reader.h"
 
 static char* script_text = "10 I=5+(3*(1+2)+1)*2+4\n\
 30 IF I%<10 THEN 20 ELSE 40\n\

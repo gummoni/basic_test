@@ -19,6 +19,7 @@ char* STR_CMD_LIST[STR_CMD_LIST_LENGTH] =
 	"IF",
 	"THEN",
 	"ELSE",
+	"ELSEIF"
 
 	"FOR",
 	"TO",
@@ -37,7 +38,7 @@ static CMD_IDX search_cmd_idx(char* str)
 	int idx;
 	for (idx = 0; idx < STR_CMD_LIST_LENGTH; idx++)
 	{
-		if (0 == strcmp(STR_CMD_LIST[idx], str)) return idx;
+		if (0 == strcmp(STR_CMD_LIST[idx], str)) return idx + 1;
 	}
 	return CMD_NONE;
 }
@@ -52,7 +53,11 @@ static inline void seek(int offset)
 static inline char get_char(void) 
 {
   char ch = *reader.rp;
-  if ('\0' == ch) return '\0';
+  if ('\0' == ch)
+  {
+	  reader.err = ERR_EOF;
+	  return '\0';
+  }
   reader.rp++;
   return ch;
 }
@@ -147,6 +152,25 @@ static inline void parse_cmd_or_val(char ch)
 		else if ('%' == ch) 
 		{
 			reader.context[idx++] = '%';
+			if ('(' == *reader.rp)
+			{
+				int idx;
+				if (!rpn_num(&idx))
+				{
+					reader.err = ERR_SYNTAX_ERROR;
+					return;
+				}
+				reader.context[idx++] = '(';
+				itoa(idx, tmp_value, 10);
+
+				char* pval = tmp_value;
+				int len = strlen(tmp_value);
+				while (0 < len--)
+				{
+					reader.context[idx++] = *(pval++);
+				}
+				reader.context[idx++] = ')';
+			}
 			reader.token = SYN_NUM;
 			reader.context[idx] = '\0';
 			break;
@@ -298,43 +322,6 @@ static inline void parse_label(void)
 	}
 }
 
-//ラベル又は行番号までジャンプ
-bool reader_seek_to(char* label)
-{
-	//念のためローカル変数に格納
-	strcpy(tmp_key, label);
-	reader.rp = reader.text;
-
-	while (true)
-	{
-		char* old_rp = reader.rp;
-
-		if (!reader_next()) return false;
-		if (VAR_NUM != reader.token) return false;
-		
-		//行番号チェック
-		if (0 == strcmp(tmp_key, reader.context))
-		{
-			reader.rp = old_rp;
-			return true;
-		}
-
-		//ラベルチェック
-		if (!reader_next()) return false;
-		if (CUR_LABEL == reader.token)
-		{
-			if (0 == strcmp(tmp_key, reader.context))
-			{
-				reader.rp = old_rp;
-				return true;
-			}
-		}
-		
-		//次の行へ
-		if (!reader_seek_to_newline()) return false;
-	}
-}
-
 //改行まで移動
 bool reader_seek_to_newline(void)
 {
@@ -349,6 +336,8 @@ bool reader_seek_to_newline(void)
 void reader_init(char* text)
 {
 	reader.text = reader.rp = text;
+	reader.no = 0;
+	reader.err = ERR_NONE;
 }
 
 //次のトークンを取得する
@@ -374,27 +363,6 @@ bool reader_next(void)
 	return true;
 }
 
-//現在の値を取得（文字列で返す）
-//reader.context = キー名
-//dst* 値
-bool reader_get_value(char* dst)
-{
-	script_token token = reader.token;
-
-	if (!reader_next()) return false;
-	if (0 != (token && (VAR_NUM | VAR_STR)))
-	{
-		strcpy(dst, reader.context);
-		return true;
-	}
-	else if (0 != (token && (SYN_NUM | SYN_STR)))
-	{
-		strcpy(dst, dic_get(reader.context));
-		return true;
-	}
-	return false;
-}
-
 //数字に変換
 static inline int convert_value(script_token token, char* value)
 {
@@ -405,14 +373,14 @@ static inline int convert_value(script_token token, char* value)
 }
 
 //逆ポーランド記法デコード
-static void rpn_decode(rpn_info* self, script_reader* reader)
+static void rpn_decode(rpn_info* self)
 {
-	script_token token = reader->token;
+	script_token token = reader.token;
 
 	switch (self->state)
 	{
 	case 0:
-		self->left = convert_value(token, reader->context);
+		self->left = convert_value(token, reader.context);
 		self->state = 1;
 		break;
 
@@ -424,17 +392,17 @@ static void rpn_decode(rpn_info* self, script_reader* reader)
 	case 2:
 		if (CALC_MUL == self->old_op)
 		{
-			self->left = self->left * convert_value(token, reader->context);
+			self->left = self->left * convert_value(token, reader.context);
 			self->state = 1;
 		}
 		else if (CALC_DIV == self->old_op)
 		{
-			self->left = self->left / convert_value(token, reader->context);
+			self->left = self->left / convert_value(token, reader.context);
 			self->state = 1;
 		}
 		else
 		{
-			self->right = convert_value(token, reader->context);
+			self->right = convert_value(token, reader.context);
 			self->state = 3;
 		}
 		break;
@@ -447,22 +415,22 @@ static void rpn_decode(rpn_info* self, script_reader* reader)
 	case 4:
 		if (CALC_MUL == self->cur_op)
 		{
-			self->right = self->right * convert_value(token, reader->context);
+			self->right = self->right * convert_value(token, reader.context);
 		}
 		else if (CALC_DIV == self->old_op)
 		{
-			self->right = self->right / convert_value(token, reader->context);
+			self->right = self->right / convert_value(token, reader.context);
 		}
 		else if (CALC_PLUS == self->old_op)
 		{
 			self->left = self->left + self->right;
-			self->right = convert_value(token, reader->context);
+			self->right = convert_value(token, reader.context);
 			self->old_op = self->cur_op;
 		}
 		else if (CALC_MINUS == self->old_op)
 		{
 			self->left = self->left - self->right;
-			self->right = convert_value(token, reader->context);
+			self->right = convert_value(token, reader.context);
 			self->old_op = self->cur_op;
 		}
 		self->state = 3;
@@ -475,29 +443,17 @@ static int rpn_result(rpn_info* self)
 {
 	if (3 == self->state)
 	{
-		if (CALC_MUL == self->cur_op)
-		{
-			self->left = self->left * self->right;
-		}
-		else if (CALC_DIV == self->old_op)
-		{
-			self->left = self->left / self->right;
-		}
-		else if (CALC_PLUS == self->old_op)
-		{
-			self->left = self->left + self->right;
-		}
-		else if (CALC_MINUS == self->old_op)
-		{
-			self->left = self->left - self->right;
-		}
+		if (CALC_MUL == self->cur_op) return self->left * self->right;
+		else if (CALC_DIV == self->old_op) return self->left / self->right;
+		else if (CALC_PLUS == self->old_op) return self->left + self->right;
+		else if (CALC_MINUS == self->old_op) return self->left - self->right;
 	}
-
 	return self->left;
 }
 
+
 //式を計算する
-bool rpn_num(void)
+bool rpn_num(int* result)
 {
 	rpn_info rpn_contexts[4];
 	rpn_info* pt_rpn = rpn_contexts;
@@ -524,16 +480,15 @@ bool rpn_num(void)
 		case CALC_MINUS:
 		case CALC_MUL:
 		case CALC_DIV:
-			rpn_decode(pt_rpn, &reader);
+			rpn_decode(pt_rpn);
 			break;
 
 		case CUR_NEWLINE:
-			itoa(rpn_result(pt_rpn), reader.context, 10);
-			reader.token = VAR_NUM;
-			dic_set(tmp_key, reader.context);
+			*result = rpn_result(pt_rpn);
 			return true;
 
 		case PRI_GT:
+			//ネスト最大３まで
 			pt_rpn++;
 			pt_rpn->state = 0;
 			break;
@@ -541,7 +496,7 @@ bool rpn_num(void)
 		case PRI_GE:
 			itoa(rpn_result(pt_rpn--), reader.context, 10);
 			reader.token = VAR_NUM;
-			rpn_decode(pt_rpn, &reader);
+			rpn_decode(pt_rpn);
 			break;
 		}
 	}
@@ -584,15 +539,52 @@ bool rpn_str(void)
 	}
 }
 
-//判定　(L ? R)
-bool rpn_eval(char* left, script_token op, char* right)
+//条件式
+bool rpn_judge(void)
 {
-	if (OPE_EQ == op) return 0 == strcmp(left, right);
-	if (OPE_NE == op) return 0 != strcmp(left, right);
-	int valL = strtol(left, NULL, 0);
-	int valR = strtol(right, NULL, 0);
+	//左辺取り込み
+	if (!reader_next())  return false;
+	switch (reader.token)
+	{
+	case VAR_NUM:
+	case VAR_STR:
+		strcpy(tmp_eval_left, reader.context);
+		break;
 
-	switch (op)
+	case SYN_NUM:
+	case SYN_STR:
+		strcpy(tmp_eval_left, dic_get(reader.context));
+		break;
+
+	default:
+		return false;
+	}
+
+	//符号取り込み
+	if (!reader_next())  return false;
+	tmp_eval_op = reader.token;
+
+	//右辺取り込み
+	if (!reader_next())  return false;
+	switch (reader.token)
+	{
+	case VAR_NUM:
+	case VAR_STR:
+		strcpy(tmp_eval_right, reader.context);
+		break;
+	case SYN_NUM:
+	case SYN_STR:
+		strcpy(tmp_eval_right, dic_get(reader.context));
+		break;
+	}
+
+	//評価
+	if (OPE_EQ == tmp_eval_op) return 0 == strcmp(tmp_eval_left, tmp_eval_right);
+	if (OPE_NE == tmp_eval_op) return 0 != strcmp(tmp_eval_left, tmp_eval_right);
+	int valL = strtol(tmp_eval_left, NULL, 0);
+	int valR = strtol(tmp_eval_right, NULL, 0);
+
+	switch (tmp_eval_op)
 	{
 	case OPE_GT: return (valL < valR);
 	case OPE_GE: return (valL <= valR);
@@ -600,4 +592,33 @@ bool rpn_eval(char* left, script_token op, char* right)
 	case OPE_LE: return (valL >= valR);
 	default: return false;
 	}
+}
+
+//先頭の行番号を探す
+static inline bool decode_seek_no()
+{
+	while (true)
+	{
+		if (!reader_next()) return false;
+		if (CUR_NEWLINE == reader.token) continue;
+		if (VAR_NUM != reader.token) return false;
+		reader.no = strtol(reader.context, NULL, 0);
+		return true;
+	}
+}
+
+//スクリプト解析（上位）
+bool decoder_execute(void)
+{
+	if (!decode_seek_no())	return false;
+	if (!reader_next())		return false;
+	switch (reader.token)
+	{
+	case SYN_STR:			return rpn_str();
+	case SYN_NUM:			return cmd_calc();
+	case SYN_CMD:			return cmd_exe(reader.cmd);
+	case CUR_LABEL:			return reader_seek_to_newline();
+	case CUR_NEWLINE:		return true;
+	}
+	return false;
 }

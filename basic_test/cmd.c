@@ -13,13 +13,69 @@ static inline bool do_end(void)
 	return false;
 }
 
+//行番号までジャンプ
+static bool jump_line_no(char* line_no)
+{
+	//念のためローカル変数に格納
+	strcpy(tmp_key, line_no);
+	reader.rp = reader.text;
+
+	while (true)
+	{
+		char* old_rp = reader.rp;
+
+		if (!reader_next()) return false;
+		if (VAR_NUM != reader.token) return false;
+
+		//行番号チェック
+		if (0 == strcmp(tmp_key, reader.context))
+		{
+			reader.rp = old_rp;
+			return true;
+		}
+
+		//次の行へ
+		if (!reader_seek_to_newline()) return false;
+	}
+}
+
+//ラベルまでジャンプ
+static bool jump_label(char* label)
+{
+	//念のためローカル変数に格納
+	strcpy(tmp_key, label);
+	reader.rp = reader.text;
+
+	while (true)
+	{
+		char* old_rp = reader.rp;
+
+		if (!reader_next()) return false;
+		if (VAR_NUM != reader.token) return false;
+
+		//ラベルチェック
+		if (!reader_next()) return false;
+		if (CUR_LABEL == reader.token)
+		{
+			if (0 == strcmp(tmp_key, reader.context))
+			{
+				reader.rp = old_rp;
+				return true;
+			}
+		}
+
+		//次の行へ
+		if (!reader_seek_to_newline()) return false;
+	}
+}
+
 static inline bool do_jump(script_token token, char* label)
 {
 	switch (token)
 	{
-	case VAR_NUM:     return reader_seek_to(label);
-	case SYN_NUM:     return reader_seek_to(dic_get(label));
-	case CUR_LABEL:   return reader_seek_to(label);
+	case VAR_NUM:     return jump_line_no(label);
+	case SYN_NUM:     return jump_line_no(dic_get(label));
+	case CUR_LABEL:   return jump_label(label);
 	case CUR_NEWLINE: return true;
 	default:          return false;
 	}
@@ -60,56 +116,25 @@ static inline bool do_if(void)
 
 	while (true)
 	{
-		//step1-1.eval : left
-		if (!reader_next())  return false;
-		switch (reader.token)
-		{
-		case VAR_NUM:
-		case VAR_STR:
-			strcpy(tmp_eval_left, reader.context);
-			break;
+		//eval
+		bool ret = rpn_judge();
 
-		case SYN_NUM:
-		case SYN_STR:
-			strcpy(tmp_eval_left, dic_get(reader.context));
-			break;
-
-		default:
-			return false;
-		}
-
-		//step1-2.operation
-		if (!reader_next())  return false;
-		tmp_eval_op = reader.token;
-
-		//step1-3.eval : right
-		if (!reader_next())  return false;
-		switch (reader.token)
-		{
-		case VAR_NUM:
-		case VAR_STR:
-			strcpy(tmp_eval_right, reader.context);
-			break;
-		case SYN_NUM:
-		case SYN_STR:
-			strcpy(tmp_eval_right, dic_get(reader.context));
-			break;
-		}
-
-		//eval : then
+		//then
 		if (!reader_next()) return false;
-		if (0 != strcmp("THEN", reader.context)) return false;
+		if (CMD_THEN != reader.cmd) return false;
 
-		if (0 != rpn_eval(tmp_eval_left, tmp_eval_op, tmp_eval_right))
+		//number
+		if (ret) return do_goto();
+		if (!reader_next()) return false;
+
+		//else, elseif
+		if (!reader_next()) return false;
+		switch (reader.cmd)
 		{
-			//eval : else
-			if (!reader_next()) return false;
-			if (!reader_next()) return false;
-			if (0 == strcmp("ELSEIF", reader.context)) continue;
-			if (0 != strcmp("ELSE", reader.context)) return reader_seek_to_newline();
+		case CMD_ELSE: return do_goto();
+		case CMD_ELSEIF: continue;
+		default: return false;
 		}
-
-		return do_goto();
 	}
 }
 
@@ -200,4 +225,15 @@ bool cmd_exe(CMD_IDX index)
 	case CMD_END:		return do_end();
 	default:			return false;
 	}
+}
+
+//計算して変数に格納
+bool cmd_calc(void)
+{
+	int result;
+	strcpy(tmp_key, reader.context);
+	if (!rpn_num(&result)) return false;
+	itoa(result, tmp_value, 10);
+	dic_set(tmp_key, tmp_value);
+	return true;
 }
