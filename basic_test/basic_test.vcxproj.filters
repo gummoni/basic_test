@@ -36,6 +36,9 @@
     <ClInclude Include="cmd.h">
       <Filter>ソース ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="csv_basic.h">
+      <Filter>ソース ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basic_test.c">
@@ -51,6 +54,9 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="cmd.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="csv_basic.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>

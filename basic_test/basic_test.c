@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "dictionary.h"
 #include "script_reader.h"
+#include "csv_basic.h"
 
 static char* script_text = "10 I=5+(3*(1+2)+1)*2+4\n\
 30 IF I%<10 THEN 20 ELSE 40\n\
@@ -15,8 +16,25 @@ static char* script_text = "10 I=5+(3*(1+2)+1)*2+4\n\
 17 NEXT\n\
 */
 
+
+static char msg1[64] = "SENDER,AXIS_Z1,R:100\n";
+static char msg2[64] = "SENDER,RECIEVER,W:100,100\n";
+static char msg3[64] = "SENDER,RECIEVER,1:100\n";
+static char msg4[64] = "SENDER,RECIEVER,1:100\n";
+
 void main() {
-	printf("Hello world");
+
+	bas_main(msg1);
+	bas_main(msg2);
+	bas_main(msg3);
+	bas_main(msg4);
+
+
+
+
+
+
+	printf("Hello world\n");
 
 	reader_init(script_text);
 	dic_clear();
@@ -26,5 +44,5 @@ void main() {
 	}
 	printf(dic_get("I%"));
 	printf(dic_get("S$"));
-	printf("============");
+	printf("\n============\n\n\n\n");
  }
