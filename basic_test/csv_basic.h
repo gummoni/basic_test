@@ -7,6 +7,7 @@
 //コマンド一覧
 typedef enum
 {
+	//A=0x41, a=0x61
 	//データ読込み（アドレスから読み取る）
 	//-->SEND,RECV,R:10
 	READ = 'R',
@@ -41,6 +42,20 @@ typedef enum
 
 } COMMAND;
 
+//エラーコード
+typedef enum
+{
+	err_invalid_return,		//リターン先が存在しない
+	err_out_of_return,		//ヒープ領域オーバー
+} error_code;
+
+//動作状態
+typedef struct
+{
+	int run_no;
+	error_code err_code;
+} BASIC_STATE;
+
 //パケット構造体
 typedef struct
 {
@@ -48,19 +63,65 @@ typedef struct
 	char* sender;
 	char* reciever;
 	char command;
+	char* opcode;	//リードポインタ(コマンド)
 	char* prm1;		//リードポインタ1
 	char* prm2;		//リードポインタ2
 	char* prm3;		//リードポインタ3
 	char* prm4;		//リードポインタ4
-	char* prm5;		//リードポインタ5
 } BAS_PACKET;
 
 //コマンドテーブル
 typedef struct
 {
 	char* name;
-	bool(*execute)(void*);
-} BAS_COMANND_TABLE;
+	bool(*execute)(BAS_PACKET*);
+} BAS_PACKET_TABLE;
+
+typedef struct
+{
+	char* name;
+	void(*execute)(BAS_PACKET*);
+} BAS_SCRIPT_TABLE;
+
+typedef struct
+{
+	char* cmd;
+	char* judge;
+	char* jump_true;
+	char* jump_false;
+} SYNTAX_IF;
+
+typedef struct
+{
+	char* cmd;
+} SYNTAX_QUIT;
+
+typedef struct
+{
+	char* eval;
+} SYNTAX_EVAL;
+
+typedef struct
+{
+	char* addr;
+} SYNTAX_READ;
+
+typedef struct
+{
+	char* addr;
+	char* value;
+} SYNTAX_WRITE;
+
+typedef struct
+{
+	char* addr;
+} SYNTAX_START;
+
+
+typedef struct
+{
+	char* addr;
+} SYNTAX_GET_PARAM;
 
 
 extern void bas_main(char* data);

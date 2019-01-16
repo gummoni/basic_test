@@ -17,10 +17,10 @@ static char* script_text = "10 I=5+(3*(1+2)+1)*2+4\n\
 */
 
 
-static char msg1[64] = "SENDER,AXIS_Z1,R:100\n";
-static char msg2[64] = "SENDER,RECIEVER,W:100,100\n";
-static char msg3[64] = "SENDER,RECIEVER,1:100\n";
-static char msg4[64] = "SENDER,RECIEVER,1:100\n";
+static char msg1[64] = "SENDER,AXIS_Z1,R:10\n";
+static char msg2[64] = "SENDER,AXIS_Z1,W:10,HELLOOOO\n";
+static char msg3[64] = "SENDER,AXIS_Z1,W:10,KK\n";
+static char msg4[64] = "SENDER,AXIS_Z1,R:10\n";
 
 void main() {
 

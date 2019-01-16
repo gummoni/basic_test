@@ -151,22 +151,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="cmd.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="csv_basic.h" />
     <ClInclude Include="dictionary.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="script_reader.h" />
-    <ClInclude Include="stack.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basic_test.c" />
-    <ClCompile Include="cmd.c" />
     <ClCompile Include="csv_basic.c" />
     <ClCompile Include="dictionary.c" />
     <ClCompile Include="script_reader.c" />
-    <ClCompile Include="stack.c" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="basic_test.rc" />

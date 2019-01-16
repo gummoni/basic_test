@@ -27,14 +27,8 @@
     <ClInclude Include="script_reader.h">
       <Filter>ソース ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="stack.h">
-      <Filter>ソース ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="cmd.h">
-      <Filter>ソース ファイル</Filter>
     </ClInclude>
     <ClInclude Include="csv_basic.h">
       <Filter>ソース ファイル</Filter>
@@ -48,12 +42,6 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="script_reader.c">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="stack.c">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
-    <ClCompile Include="cmd.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="csv_basic.c">
