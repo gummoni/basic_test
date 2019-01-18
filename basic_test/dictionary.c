@@ -20,7 +20,7 @@ char* dic_get(char* key) {
   return "\0";
 }
 
-void dic_set(char* key, char* value) {
+char* dic_set(char* key, char* value) {
   int idx = 0;
   for (idx = 0; idx < VARIABLE_MEMORY_SIZE; idx++) {
     if (strlen(_dictionary[idx][0]) == 0) break;
@@ -28,4 +28,5 @@ void dic_set(char* key, char* value) {
   }
   strcpy(_dictionary[idx][0], key);
   strcpy(_dictionary[idx][1], value);
+  return _dictionary[idx][1];
 }

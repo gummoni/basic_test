@@ -3,45 +3,19 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdbool.h>
-#include "script_reader.h"
 #include "dictionary.h"
+#include "bas_packet.h"
+#include "script_reader.h"
 
-script_reader reader;
-char tmp_key[VARIABLE_NAME_LENGTH];
-char tmp_value[VARIABLE_NAME_LENGTH];
-char tmp_eval_left[VARIABLE_NAME_LENGTH];
-char tmp_eval_right[VARIABLE_NAME_LENGTH];
-script_token tmp_eval_op;
+static bool rpn_num(int* result);
 
-#define STR_CMD_LIST_LENGTH (11)
-char* STR_CMD_LIST[STR_CMD_LIST_LENGTH] =
-{
-	"IF",
-	"THEN",
-	"ELSE",
-	"ELSEIF"
+static script_reader reader;
+static char tmp_key[VARIABLE_NAME_LENGTH];
+static char tmp_value[VARIABLE_NAME_LENGTH];
+static char tmp_eval_left[VARIABLE_NAME_LENGTH];
+static char tmp_eval_right[VARIABLE_NAME_LENGTH];
+static script_token tmp_eval_op;
 
-	"FOR",
-	"TO",
-	"STEP",
-	"NEXT",
-
-	"GOTO",
-	"GOSUB",
-	"RETURN",
-	"END",
-};
-
-//予約命令検索
-static CMD_IDX search_cmd_idx(char* str)
-{
-	int idx;
-	for (idx = 0; idx < STR_CMD_LIST_LENGTH; idx++)
-	{
-		if (0 == strcmp(STR_CMD_LIST[idx], str)) return idx + 1;
-	}
-	return CMD_NONE;
-}
 
 //読込みポインタ移動（相対値）
 static inline void seek(int offset)
@@ -55,7 +29,6 @@ static inline char get_char(void)
   char ch = *reader.rp;
   if ('\0' == ch)
   {
-	  reader.err = ERR_EOF;
 	  return '\0';
   }
   reader.rp++;
@@ -137,7 +110,7 @@ static inline void parse_num(char ch)
 }
 
 //文字列から変数またはコマンドかを調べる
-static inline void parse_cmd_or_val(char ch)
+static inline void parse_val(char ch)
 {
 	int idx = 0;
 	reader.context[idx++] = ch;
@@ -147,17 +120,18 @@ static inline void parse_cmd_or_val(char ch)
 		ch = get_char();
 		if ('A' <= ch && ch <= 'Z' || '_' == ch)
 		{
+			//文字列
 			reader.context[idx++] = ch;
 		}
 		else if ('%' == ch) 
 		{
+			//数字：終端
 			reader.context[idx++] = '%';
 			if ('(' == *reader.rp)
 			{
 				int idx;
 				if (!rpn_num(&idx))
 				{
-					reader.err = ERR_SYNTAX_ERROR;
 					return;
 				}
 				reader.context[idx++] = '(';
@@ -177,25 +151,19 @@ static inline void parse_cmd_or_val(char ch)
 		}
 		else if ('$' == ch) 
 		{
+			//文字列：終端
 			reader.context[idx++] = '$';
 			reader.token = SYN_STR;
 			reader.context[idx] = '\0';
 			break;
 		}
-		else 
+		else
 		{
+			//不明な文字：終端
 			seek(-1);
+			reader.context[idx++] = '%';
 			reader.context[idx] = '\0';
-			reader.cmd = search_cmd_idx(reader.context);
-			if (CMD_NONE == reader.cmd)
-			{
-				reader.context[idx++] = '%';
-				reader.token = SYN_NUM;
-			}
-			else
-			{
-				reader.token = SYN_CMD;
-			}
+			reader.token = SYN_NUM;
 			break;
 		}
 	}
@@ -322,23 +290,6 @@ static inline void parse_label(void)
 	}
 }
 
-//改行まで移動
-bool reader_seek_to_newline(void)
-{
-	while (true)
-	{
-		if (CUR_NEWLINE == reader.token) return true;
-		if (!reader_next()) return false;
-	}
-}
-
-//初期化
-void reader_init(char* text)
-{
-	reader.text = reader.rp = text;
-	reader.no = 0;
-	reader.err = ERR_NONE;
-}
 
 //次のトークンを取得する
 bool reader_next(void)
@@ -349,7 +300,7 @@ bool reader_next(void)
 	else if (')' == ch) parse_ge();
 	else if ('\r' == ch || '\n' == ch) parse_newline();
 	else if ('0' <= ch && ch <= '9') parse_num(ch);
-	else if ('A' <= ch && ch <= 'Z' || '_' == ch) parse_cmd_or_val(ch);
+	else if ('A' <= ch && ch <= 'Z' || '_' == ch) parse_val(ch);
 	else if ('"' == ch) parse_str();
 	else if ('+' == ch) parse_plus();
 	else if ('-' == ch) parse_minus();
@@ -443,7 +394,7 @@ static int rpn_result(rpn_info* self)
 {
 	if (3 == self->state)
 	{
-		if (CALC_MUL == self->cur_op) return self->left * self->right;
+		if (CALC_MUL == self->old_op) return self->left * self->right;
 		else if (CALC_DIV == self->old_op) return self->left / self->right;
 		else if (CALC_PLUS == self->old_op) return self->left + self->right;
 		else if (CALC_MINUS == self->old_op) return self->left - self->right;
@@ -451,9 +402,25 @@ static int rpn_result(rpn_info* self)
 	return self->left;
 }
 
+//数式を計算する
+static bool rpn_calc(void)
+{
+	if (*reader.rp == '=')
+	{
+		int result;
+		if (!rpn_num(&result)) return false;
+		itoa(result, tmp_value, 10);
+		*reader.result = dic_set(tmp_key, tmp_value);
+	}
+	else
+	{
+		*reader.result = dic_get(reader.context);
+	}
+	return true;
+}
 
 //式を計算する
-bool rpn_num(int* result)
+static bool rpn_num(int* result)
 {
 	rpn_info rpn_contexts[4];
 	rpn_info* pt_rpn = rpn_contexts;
@@ -465,7 +432,11 @@ bool rpn_num(int* result)
 
 	while (true)
 	{
-		reader_next();
+		if (!reader_next())
+		{
+			*result = rpn_result(pt_rpn);
+			return true;
+		}
 		switch (reader.token)
 		{
 		case VAR_STR:
@@ -503,17 +474,21 @@ bool rpn_num(int* result)
 }
 
 //文字列の結合
-bool rpn_str(void)
+static bool rpn_str(void)
 {
 	strcpy(tmp_key, reader.context);
 	tmp_value[0] = '\0';
 
-	reader_next();
+	if (!reader_next()) return false;
 	if (reader.token != CALC_EQUAL) return false;
 
 	while (true)
 	{
-		reader_next();
+		if (!reader_next())
+		{
+			*reader.result = dic_set(tmp_key, tmp_value);
+			return true;
+		}
 		switch (reader.token)
 		{
 		case VAR_STR:
@@ -530,7 +505,7 @@ bool rpn_str(void)
 			break;
 
 		case CUR_NEWLINE:
-			dic_set(tmp_key, tmp_value);
+			*reader.result = dic_set(tmp_key, tmp_value);
 			return true;
 
 		default:
@@ -594,31 +569,17 @@ bool rpn_judge(void)
 	}
 }
 
-//先頭の行番号を探す
-static inline bool decode_seek_no()
-{
-	while (true)
-	{
-		if (!reader_next()) return false;
-		if (CUR_NEWLINE == reader.token) continue;
-		if (VAR_NUM != reader.token) return false;
-		reader.no = strtol(reader.context, NULL, 0);
-		return true;
-	}
-}
-
 //スクリプト解析（上位）
-bool decoder_execute(void)
+bool rpn_execute(BAS_PACKET_BODY* body)
 {
-	if (!decode_seek_no())	return false;
-	if (!reader_next())		return false;
-	switch (reader.token)
+	reader.rp = body->opcode;
+	reader.result = &body->response;
+
+	if (reader_next())
 	{
-	case SYN_STR:			return rpn_str();
-	case SYN_NUM:			return cmd_calc();
-	case SYN_CMD:			return cmd_exe(reader.cmd);
-	case CUR_LABEL:			return reader_seek_to_newline();
-	case CUR_NEWLINE:		return true;
+		script_token token = reader.token;
+		if (token == SYN_STR) return rpn_str();
+		if (token == SYN_NUM) return rpn_calc();
 	}
 	return false;
 }

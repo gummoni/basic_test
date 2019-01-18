@@ -1,7 +1,9 @@
 #include <stdio.h>
+#include <string.h>
 #include "dictionary.h"
-#include "script_reader.h"
 #include "csv_basic.h"
+#include "bas_packet.h"
+#include "script_reader.h"
 
 static char* script_text = "10 I=5+(3*(1+2)+1)*2+4\n\
 30 IF I%<10 THEN 20 ELSE 40\n\
@@ -15,34 +17,31 @@ static char* script_text = "10 I=5+(3*(1+2)+1)*2+4\n\
 16   S$ += \"-\"\n\
 17 NEXT\n\
 */
+char msg[64];
 
 
-static char msg1[64] = "SENDER,AXIS_Z1,R:10\n";
-static char msg2[64] = "SENDER,AXIS_Z1,W:10,HELLOOOO\n";
-static char msg3[64] = "SENDER,AXIS_Z1,W:10,KK\n";
-static char msg4[64] = "SENDER,AXIS_Z1,R:10\n";
+static char* msgs[] = {
+	"SENDER,AXIS_Z1,R:10\n",
+	"SENDER,AXIS_Z1,W:10,HELLOOOO\n",
+	"SENDER,AXIS_Z1,N:I=5+(3*(1+2)+1)*2+4\n",
+	"SENDER,AXIS_Z1,N:I=I*2+1\n",
+	"SENDER,AXIS_Z1,N:I\n",
+	"SENDER,AXIS_Z1,R:10\n",
+	NULL,
+};
 
 void main() {
 
-	bas_main(msg1);
-	bas_main(msg2);
-	bas_main(msg3);
-	bas_main(msg4);
-
-
-
-
-
-
-	printf("Hello world\n");
-
-	reader_init(script_text);
 	dic_clear();
-
-	while (0 != decoder_execute()) {
-		printf("---");
+	for (int i = 0; msgs[i] != NULL; i++)
+	{
+		strcpy(msg, msgs[i]);
+		bas_main(msg);
 	}
-	printf(dic_get("I%"));
-	printf(dic_get("S$"));
-	printf("\n============\n\n\n\n");
+
+	msg[0] = '\0';
+	while (true)
+	{
+		bas_main(msg);
+	}
  }

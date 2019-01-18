@@ -4,7 +4,7 @@
 
 extern void dic_clear(void);
 extern char* dic_get(char*);
-extern void dic_set(char*, char*);
+extern char* dic_set(char*, char*);
 
 
 #endif//__DICTIONARY_H__

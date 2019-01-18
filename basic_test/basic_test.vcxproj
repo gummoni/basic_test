@@ -151,8 +151,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="bas_packet.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="csv_basic.h" />
+    <ClInclude Include="bas_script.h" />
+    <ClInclude Include="bas_comm.h" />
     <ClInclude Include="dictionary.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
@@ -160,7 +163,10 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basic_test.c" />
+    <ClCompile Include="bas_packet.c" />
     <ClCompile Include="csv_basic.c" />
+    <ClCompile Include="bas_script.c" />
+    <ClCompile Include="bas_comm.c" />
     <ClCompile Include="dictionary.c" />
     <ClCompile Include="script_reader.c" />
   </ItemGroup>

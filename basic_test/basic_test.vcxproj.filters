@@ -33,6 +33,15 @@
     <ClInclude Include="csv_basic.h">
       <Filter>ソース ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="bas_comm.h">
+      <Filter>ソース ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="bas_script.h">
+      <Filter>ソース ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="bas_packet.h">
+      <Filter>ソース ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="basic_test.c">
@@ -45,6 +54,15 @@
       <Filter>ソース ファイル</Filter>
     </ClCompile>
     <ClCompile Include="csv_basic.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="bas_comm.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="bas_script.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="bas_packet.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
