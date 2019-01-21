@@ -38,9 +38,6 @@ void bas_init(void)
 //ƒRƒ}ƒ“ƒh‰ðÍ
 void bas_main(char* recv_message)
 {
-	printf(">");
-	printf(recv_message);
-	printf("<");
 	bas_comm_job(recv_message);
  	bas_script_job();
 }

@@ -100,6 +100,22 @@ static bool bas_comm_check_from(BAS_PACKET* self)
 	return false;
 }
 
+//１文字取得
+static bool bas_check_message(char* msg)
+{
+	for (int i = 0; i < 32; i++)
+	{
+		char ch = msg[i];
+		if ('a' <= ch && ch <= 'z') continue;
+		if ('A' <= ch && ch <= 'Z') continue;
+		if (',' == ch) continue;
+		if (' ' == ch) continue;
+		if ('\n' == ch) continue;
+		if ('\0' == ch) return true;
+	}
+	return false;
+}
+
 //トピックID取得(0-9=該当あり,-1=該当なし
 static int bas_comm_get_topic_id(char* topic)
 {
@@ -118,11 +134,13 @@ static int bas_comm_get_topic_id(char* topic)
 bool bas_comm_parse(BAS_PACKET* packet, char* msg)
 {
 	packet->response = NULL;
+	if (!bas_check_message(msg)) return false;
+
 	//----------------------------------------------------------------------------
 	//パケット解析
 	//----------------------------------------------------------------------------
 	//[SENDER]
-	packet->sender = msg;
+	packet->sender = msg;	
 	for (msg++; ',' != *msg; msg++) if ('\0' == *msg) return false;
 	*(msg++) = '\0';
 
