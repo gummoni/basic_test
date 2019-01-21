@@ -138,7 +138,7 @@ bool bas_comm_parse(BAS_PACKET* packet, char* msg)
 	if (':' != *(msg++)) return false;
 
 	//[PARAMETER]
-	return bas_parse_parameter(packet, msg);
+	return bas_parse_parameter(packet, msg, ',');
 }
 
 //’ÊM“d•¶‰ğÍˆ—

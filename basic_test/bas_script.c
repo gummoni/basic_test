@@ -6,12 +6,16 @@
 #include "csv_basic.h"
 #include "bas_script.h"
 #include "bas_packet.h"
+#include "dictionary.h"
 #include "script_reader.h"
 
 //GOSUB系のヒープ領域
 #define MAX_GOSUB_HEAP_SIZE		4
 static unsigned char heap_memory[MAX_GOSUB_HEAP_SIZE];
 static unsigned char heap_idx = 0;
+
+//受信バッファ
+static char recv_buf[PROGRAM_LINE_COUNT];
 
 
 //=============================================================================
@@ -21,6 +25,16 @@ static unsigned char heap_idx = 0;
 //IF文
 static void bas_script_if(BAS_PACKET* packet)
 {
+	if (rpn_judge(&packet->prm1))
+	{
+		//TRUE
+		state.run_no = strtol(packet->prm2, NULL, 0);
+	}
+	else
+	{
+		//FALSE
+		state.run_no = strtol(packet->prm3, NULL, 0);
+	}
 }
 
 //GOTO文
@@ -65,7 +79,12 @@ static void bas_script_end(BAS_PACKET* packet)
 //メッセージ通知
 static void bas_script_notify(BAS_PACKET* packet)
 {
-	bas_send_message(program_areas[0], packet->opcode, NOTIFY, packet->prm1);
+	char resp[32];
+	char* to = packet->prm1;
+	char* key = packet->prm2;
+	char* val = rpn_get_value(key);
+	sprintf(resp, "%s=%s", key, val);
+	bas_send_message(program_areas[0], to, NOTIFY, resp);
 }
 
 #define SCRIPT_COMMAND_TABLE_LENGTH	6
@@ -108,6 +127,6 @@ void bas_script_job(void)
 	packet.reciever = packet.sender = program_areas[0];
 	packet.response = NULL;
 	strcpy(recv_buf, program_areas[state.run_no++]);
-	if (!bas_parse_parameter(&packet, recv_buf)) return;
+	if (!bas_parse_parameter(&packet, recv_buf, ' ')) return;
 	bas_script_execute(&packet);
 }

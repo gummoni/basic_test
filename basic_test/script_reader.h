@@ -69,7 +69,7 @@ typedef struct
 
 
 extern bool rpn_execute(BAS_PACKET_BODY* context);
-extern bool rpn_judge(void);
-
+extern bool rpn_judge(BAS_PACKET_BODY* context);
+extern char* rpn_get_value(char* key);
 
 #endif//__SCRIPT_READER_H__

@@ -162,7 +162,7 @@
     <ClInclude Include="script_reader.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="basic_test.c" />
+    <ClCompile Include="main.c" />
     <ClCompile Include="bas_packet.c" />
     <ClCompile Include="csv_basic.c" />
     <ClCompile Include="bas_script.c" />

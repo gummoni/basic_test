@@ -229,8 +229,8 @@ static inline void parse_equ(void)
   } 
   else 
   {
-    seek(-1);
-    reader.token = CALC_EQUAL;
+	*reader.rp--;
+	reader.token = CALC_EQUAL;
   }
   reader.context[0] = '\0';
 }
@@ -476,47 +476,57 @@ static bool rpn_num(int* result)
 //•¶š—ñ‚ÌŒ‹‡
 static bool rpn_str(void)
 {
-	strcpy(tmp_key, reader.context);
-	tmp_value[0] = '\0';
-
-	if (!reader_next()) return false;
-	if (reader.token != CALC_EQUAL) return false;
-
-	while (true)
+	if (*reader.rp == '=')
 	{
-		if (!reader_next())
+		strcpy(tmp_key, reader.context);
+		tmp_value[0] = '\0';
+
+		if (!reader_next()) return false;
+		if (reader.token != CALC_EQUAL) return false;
+
+		while (true)
 		{
-			*reader.result = dic_set(tmp_key, tmp_value);
-			return true;
+			if (!reader_next())
+			{
+				*reader.result = dic_set(tmp_key, tmp_value);
+				return true;
+			}
+			switch (reader.token)
+			{
+			case VAR_STR:
+			case VAR_NUM:
+				strcat(tmp_value, reader.context);
+				break;
+
+			case SYN_STR:
+			case SYN_NUM:
+				strcat(tmp_value, dic_get(reader.context));
+				break;
+
+			case CALC_PLUS:
+				break;
+
+			case CUR_NEWLINE:
+				*reader.result = dic_set(tmp_key, tmp_value);
+				return true;
+
+			default:
+				return false;
+			}
 		}
-		switch (reader.token)
-		{
-		case VAR_STR:
-		case VAR_NUM:
-			strcat(tmp_value, reader.context);
-			break;
-
-		case SYN_STR:
-		case SYN_NUM:
-			strcat(tmp_value, dic_get(reader.context));
-			break;
-
-		case CALC_PLUS:
-			break;
-
-		case CUR_NEWLINE:
-			*reader.result = dic_set(tmp_key, tmp_value);
-			return true;
-
-		default:
-			return false;
-		}
+	}
+	else
+	{
+		*reader.result = dic_get(reader.context);
+		return true;
 	}
 }
 
 //ğŒ®
-bool rpn_judge(void)
+bool rpn_judge(BAS_PACKET_BODY* body)
 {
+	reader.rp = body->opcode;
+
 	//¶•Óæ‚è‚İ
 	if (!reader_next())  return false;
 	switch (reader.token)
@@ -582,4 +592,17 @@ bool rpn_execute(BAS_PACKET_BODY* body)
 		if (token == SYN_NUM) return rpn_calc();
 	}
 	return false;
+}
+
+//•Ï”‚Ì’†gæ“¾
+char* rpn_get_value(char* key)
+{
+	reader.rp = key;
+	if (reader_next())
+	{
+		script_token token = reader.token;
+		if (token == SYN_STR) return dic_get(reader.context);
+		if (token == SYN_NUM) return dic_get(reader.context);
+	}
+	return "\0";
 }

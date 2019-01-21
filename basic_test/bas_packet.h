@@ -99,13 +99,8 @@ extern char program_areas[PROGRAM_LINE_MAX][PROGRAM_LINE_COUNT];
 //BAS翻訳機の状態
 extern BASIC_STATE state;
 
-//送信バッファ
-extern char send_buf[PROGRAM_LINE_COUNT];
-//受信バッファ
-extern char recv_buf[PROGRAM_LINE_COUNT];
-
 extern void bas_send_message(char* from, char* to, char cmd, char* message);
-extern bool bas_parse_parameter(BAS_PACKET* packet, char* msg);
+extern bool bas_parse_parameter(BAS_PACKET* packet, char* msg, char separator);
 extern bool bas_comm_parse(BAS_PACKET* packet, char* msg);
 
 #endif//__BAS_PACKET_H__
