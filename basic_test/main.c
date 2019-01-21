@@ -56,8 +56,11 @@ void main() {
 	}
 
 	msg[0] = '\0';
-	while (true)
+	while (0 < state.run_no)
 	{
+		printf("%d:", state.run_no);
 		bas_main(msg);
+		printf("\n");
 	}
+	printf("\n\n\n\n\n\n\n\n");
  }
