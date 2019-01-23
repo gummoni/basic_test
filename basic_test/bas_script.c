@@ -3,7 +3,7 @@
 #include "bas_script.h"
 #include "bas_packet.h"
 #include "dictionary.h"
-#include "script_reader.h"
+#include "rpn.h"
 #include "gosub_heap.h"
 
 //受信バッファ

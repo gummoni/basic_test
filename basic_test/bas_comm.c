@@ -5,7 +5,7 @@
 #include "csv_basic.h"
 #include "bas_comm.h"
 #include "bas_packet.h"
-#include "script_reader.h"
+#include "rpn.h"
 
 //スクリプト読込み
 static bool bas_comm_read(BAS_PACKET_BODY* context)

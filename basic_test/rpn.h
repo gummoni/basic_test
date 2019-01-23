@@ -1,5 +1,5 @@
-#ifndef __SCRIPT_READER_H__
-#define __SCRIPT_READER_H__
+#ifndef __RPN_H__
+#define __RPN_H__
 #include "config.h"
 
 typedef enum {
@@ -49,21 +49,27 @@ typedef enum {
 	PRI_GT = 0x00200000,
 	// 22 : )
 	PRI_GE = 0x00400000,
-} script_token;
+} rpn_token;
 
 typedef struct {
 	char* rp;								// read pointer
-	script_token token;						// token
+	rpn_token token;						// token
 	char context[VARIABLE_NAME_LENGTH];		// command / variable:number / variable:string
 	char** result;
-} script_reader;
+
+	char tmp_key[VARIABLE_NAME_LENGTH];
+	char tmp_value[VARIABLE_NAME_LENGTH];
+	char tmp_eval_left[VARIABLE_NAME_LENGTH];
+	char tmp_eval_right[VARIABLE_NAME_LENGTH];
+
+} rpn_reader;
 
 typedef struct
 {
 	int left;
 	int right;
-	script_token old_op;
-	script_token cur_op;
+	rpn_token old_op;
+	rpn_token cur_op;
 	int state;
 } rpn_info;
 
@@ -72,4 +78,4 @@ extern bool rpn_execute(BAS_PACKET_BODY* context);
 extern bool rpn_judge(BAS_PACKET_BODY* context);
 extern char* rpn_get_value(char* key);
 
-#endif//__SCRIPT_READER_H__
+#endif//__RPN_H__

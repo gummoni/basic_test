@@ -160,7 +160,7 @@
     <ClInclude Include="gosub_heap.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="script_reader.h" />
+    <ClInclude Include="rpn.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gosub_heap.c" />
@@ -170,7 +170,7 @@
     <ClCompile Include="bas_script.c" />
     <ClCompile Include="bas_comm.c" />
     <ClCompile Include="dictionary.c" />
-    <ClCompile Include="script_reader.c" />
+    <ClCompile Include="rpn.c" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="basic_test.rc" />

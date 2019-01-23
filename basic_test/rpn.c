@@ -1,16 +1,12 @@
 #include "config.h"
 #include "dictionary.h"
 #include "bas_packet.h"
-#include "script_reader.h"
+#include "rpn.h"
 
 static bool rpn_num(int* result);
 
-static script_reader reader;
-static char tmp_key[VARIABLE_NAME_LENGTH];
-static char tmp_value[VARIABLE_NAME_LENGTH];
-static char tmp_eval_left[VARIABLE_NAME_LENGTH];
-static char tmp_eval_right[VARIABLE_NAME_LENGTH];
-static script_token tmp_eval_op;
+static rpn_reader reader;
+static rpn_token tmp_eval_op;
 
 
 //読込みポインタ移動（相対値）
@@ -130,10 +126,10 @@ static inline void parse_val(char ch)
 					return;
 				}
 				reader.context[idx++] = '(';
-				itoa(idx, tmp_value, 10);
+				itoa(idx, reader.tmp_value, 10);
 
-				char* pval = tmp_value;
-				int len = strlen(tmp_value);
+				char* pval = reader.tmp_value;
+				int len = strlen(pval);
 				while (0 < len--)
 				{
 					reader.context[idx++] = *(pval++);
@@ -260,32 +256,8 @@ static inline void parse_le_lt(void)
 	}
 }
 
-//ラベル移動
-static inline void parse_label(void)
-{
-	int idx = 0;
-	reader.token = CUR_LABEL;
-	reader.context[idx++] = '@';
-
-	while (true)
-	{
-		char ch = get_char();
-		if (('A' <= ch && ch <= 'Z') || ('0' <= ch && ch <= '9') || '_' == ch)
-		{
-			reader.context[idx++] = ch;
-		}
-		else
-		{
-			seek(-1);
-			reader.context[idx] = '\0';
-			break;
-		}
-	}
-}
-
-
 //次のトークンを取得する
-bool reader_next(void)
+static bool reader_next(void)
 {
 	skip_space();
 	char ch = toupper(get_char());
@@ -302,13 +274,12 @@ bool reader_next(void)
 	else if ('=' == ch) parse_equ();
 	else if ('<' == ch) parse_ge_ne_gt();
 	else if ('>' == ch) parse_le_lt();
-	else if ('@' == ch) parse_label();
 	else return false;
 	return true;
 }
 
 //数字に変換
-static inline int convert_value(script_token token, char* value)
+static inline int convert_value(rpn_token token, char* value)
 {
 	int result = 0;
 	if (VAR_NUM == token) result = strtol(value, NULL, 0);
@@ -319,7 +290,7 @@ static inline int convert_value(script_token token, char* value)
 //逆ポーランド記法デコード
 static void rpn_decode(rpn_info* self)
 {
-	script_token token = reader.token;
+	rpn_token token = reader.token;
 
 	switch (self->state)
 	{
@@ -411,8 +382,8 @@ static bool rpn_calc(void)
 	{
 		int result;
 		if (!rpn_num(&result)) return false;
-		itoa(result, tmp_value, 10);
-		*reader.result = dic_set(tmp_key, tmp_value);
+		itoa(result, reader.tmp_value, 10);
+		*reader.result = dic_set(reader.tmp_key, reader.tmp_value);
 	}
 	else
 	{
@@ -426,7 +397,7 @@ static bool rpn_num(int* result)
 {
 	rpn_info rpn_contexts[4];
 	rpn_info* pt_rpn = rpn_contexts;
-	strcpy(tmp_key, reader.context);
+	strcpy(reader.tmp_key, reader.context);
 	pt_rpn->state = 0;
 
 	if (!reader_next()) return false;
@@ -480,8 +451,8 @@ static bool rpn_str(void)
 {
 	if (*reader.rp == '=')
 	{
-		strcpy(tmp_key, reader.context);
-		tmp_value[0] = '\0';
+		strcpy(reader.tmp_key, reader.context);
+		reader.tmp_value[0] = '\0';
 
 		if (!reader_next()) return false;
 		if (reader.token != CALC_EQUAL) return false;
@@ -490,26 +461,26 @@ static bool rpn_str(void)
 		{
 			if (!reader_next())
 			{
-				*reader.result = dic_set(tmp_key, tmp_value);
+				*reader.result = dic_set(reader.tmp_key, reader.tmp_value);
 				return true;
 			}
 			switch (reader.token)
 			{
 			case VAR_STR:
 			case VAR_NUM:
-				strcat(tmp_value, reader.context);
+				strcat(reader.tmp_value, reader.context);
 				break;
 
 			case SYN_STR:
 			case SYN_NUM:
-				strcat(tmp_value, dic_get(reader.context));
+				strcat(reader.tmp_value, dic_get(reader.context));
 				break;
 
 			case CALC_PLUS:
 				break;
 
 			case CUR_NEWLINE:
-				*reader.result = dic_set(tmp_key, tmp_value);
+				*reader.result = dic_set(reader.tmp_key, reader.tmp_value);
 				return true;
 
 			default:
@@ -535,12 +506,12 @@ bool rpn_judge(BAS_PACKET_BODY* body)
 	{
 	case VAR_NUM:
 	case VAR_STR:
-		strcpy(tmp_eval_left, reader.context);
+		strcpy(reader.tmp_eval_left, reader.context);
 		break;
 
 	case SYN_NUM:
 	case SYN_STR:
-		strcpy(tmp_eval_left, dic_get(reader.context));
+		strcpy(reader.tmp_eval_left, dic_get(reader.context));
 		break;
 
 	default:
@@ -557,19 +528,19 @@ bool rpn_judge(BAS_PACKET_BODY* body)
 	{
 	case VAR_NUM:
 	case VAR_STR:
-		strcpy(tmp_eval_right, reader.context);
+		strcpy(reader.tmp_eval_right, reader.context);
 		break;
 	case SYN_NUM:
 	case SYN_STR:
-		strcpy(tmp_eval_right, dic_get(reader.context));
+		strcpy(reader.tmp_eval_right, dic_get(reader.context));
 		break;
 	}
 
 	//評価
-	if (OPE_EQ == tmp_eval_op) return 0 == strcmp(tmp_eval_left, tmp_eval_right);
-	if (OPE_NE == tmp_eval_op) return 0 != strcmp(tmp_eval_left, tmp_eval_right);
-	int valL = strtol(tmp_eval_left, NULL, 0);
-	int valR = strtol(tmp_eval_right, NULL, 0);
+	if (OPE_EQ == tmp_eval_op) return 0 == strcmp(reader.tmp_eval_left, reader.tmp_eval_right);
+	if (OPE_NE == tmp_eval_op) return 0 != strcmp(reader.tmp_eval_left, reader.tmp_eval_right);
+	int valL = strtol(reader.tmp_eval_left, NULL, 0);
+	int valR = strtol(reader.tmp_eval_right, NULL, 0);
 
 	switch (tmp_eval_op)
 	{
@@ -589,7 +560,7 @@ bool rpn_execute(BAS_PACKET_BODY* body)
 
 	if (reader_next())
 	{
-		script_token token = reader.token;
+		rpn_token token = reader.token;
 		if (token == SYN_STR) return rpn_str();
 		if (token == SYN_NUM) return rpn_calc();
 	}
@@ -602,7 +573,7 @@ char* rpn_get_value(char* key)
 	reader.rp = key;
 	if (reader_next())
 	{
-		script_token token = reader.token;
+		rpn_token token = reader.token;
 		if (token == SYN_STR) return dic_get(reader.context);
 		if (token == SYN_NUM) return dic_get(reader.context);
 	}
