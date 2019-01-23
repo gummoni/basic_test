@@ -8,7 +8,7 @@ static char* msgs[] = {
 	"SENDER,AXIS_Z1,W:10,I=0",
 	"SENDER,AXIS_Z1,W:11,IF I<>0 *TEST",
 	"SENDER,AXIS_Z1,W:12,I=1",
-	"SENDER,AXIS_Z1,W:13,I=2",
+	"SENDER,AXIS_Z1,W:13,NOTIFY USER I\n",
 	"SENDER,AXIS_Z1,W:14,END",
 	"SENDER,AXIS_Z1,W:15,*TEST",
 	"SENDER,AXIS_Z1,W:16,GOSUB *TEST2 11",
@@ -59,8 +59,8 @@ void main() {
 	{
 		printf("%d:", state.run_no);
 		strcpy(msg, msgs[i]);
-		bas_comm_job(msg);
-		bas_script_job();
+		bas_comm_job(msg);					//通信電文解析
+		bas_script_job();					//スクリプト解析
 	}
 
 	//スクリプト実行中

@@ -98,7 +98,7 @@ static inline void parse_num(char ch)
 	self.context[idx] = '\0';
 }
 
-//文字列から変数またはコマンドかを調べる
+//文字型変数・数字型変数どちらかを調べる
 static inline void parse_val(char ch)
 {
 	int idx = 0;
@@ -107,32 +107,14 @@ static inline void parse_val(char ch)
 	while (true) 
 	{
 		ch = get_char();
-		if ('A' <= ch && ch <= 'Z' || '_' == ch)
+		if ('A' <= ch && ch <= 'Z' || '0' <= ch && ch <= '9' || '_' == ch || '.' == ch)
 		{
-			//文字列
+			//変数名
 			self.context[idx++] = ch;
 		}
 		else if ('%' == ch) 
 		{
 			//数字：終端
-			if ('(' == *self.rp)
-			{
-				int idx;
-				if (!rpn_num(&idx))
-				{
-					return;
-				}
-				self.context[idx++] = '(';
-				itoa(idx, self.tmp_value, 10);
-
-				char* pval = self.tmp_value;
-				int len = strlen(pval);
-				while (0 < len--)
-				{
-					self.context[idx++] = *(pval++);
-				}
-				self.context[idx++] = ')';
-			}
 			self.token = SYN_NUM;
 			self.context[idx] = '\0';
 			break;
@@ -148,13 +130,14 @@ static inline void parse_val(char ch)
 		{
 			//不明な文字：終端
 			seek(-1);
-			self.context[idx] = '\0';
 			self.token = SYN_NUM;
+			self.context[idx] = '\0';
 			break;
 		}
 	}
 }
 
+//文字列解析
 static inline void parse_str(void)
 {
 	int idx = 0;
@@ -182,31 +165,36 @@ static inline void parse_str(void)
 	self.context[idx] = '\0';
 }
 
+//記号解析
 static inline void parse_plus(void)
 {
 	self.token = CALC_PLUS;
 	self.context[0] = '\0';
 }
 
+//記号解析
 static inline void parse_minus(void)
 {
 	self.token = CALC_MINUS;
 	self.context[0] = '\0';
 }
 
+//記号解析
 static inline void parse_mul(void)
 {
 	self.token = CALC_MUL;
 	self.context[0] = '\0';
 }
 
-static inline void parse_div(void) 
+//記号解析
+static inline void parse_div(void)
 {
 	self.token = CALC_DIV;
 	self.context[0] = '\0';
 }
 
-static inline void parse_equ(void) 
+//記号解析
+static inline void parse_equ(void)
 {
   char ch = get_char();
   if ('=' == ch)
@@ -221,6 +209,7 @@ static inline void parse_equ(void)
   self.context[0] = '\0';
 }
 
+//記号解析
 static inline void parse_ge_ne_gt(void)
 {
 	char ch = get_char();
@@ -240,14 +229,19 @@ static inline void parse_ge_ne_gt(void)
 }
 
 //符号解析
-static inline void parse_le_lt(void)
+static inline void parse_le_ne_lt(void)
 {
 	char ch = get_char();
 	if ('=' == ch)
 	{
 		self.token = OPE_LE;
 	}
-	else {
+	else if ('<' == ch)
+	{
+		self.token = OPE_NE;
+	}
+	else
+	{
 		seek(-1);
 		self.token = OPE_LT;
 	}
@@ -262,7 +256,7 @@ static bool reader_next(void)
 	else if (')' == ch) parse_ge();
 	else if ('\r' == ch || '\n' == ch) parse_newline();
 	else if ('0' <= ch && ch <= '9') parse_num(ch);
-	else if ('A' <= ch && ch <= 'Z' || '_' == ch) parse_val(ch);
+	else if ('A' <= ch && ch <= 'Z' || '_' == ch || '.' == ch) parse_val(ch);
 	else if ('"' == ch) parse_str();
 	else if ('+' == ch) parse_plus();
 	else if ('-' == ch) parse_minus();
@@ -270,7 +264,7 @@ static bool reader_next(void)
 	else if ('/' == ch) parse_div();
 	else if ('=' == ch) parse_equ();
 	else if ('<' == ch) parse_ge_ne_gt();
-	else if ('>' == ch) parse_le_lt();
+	else if ('>' == ch) parse_le_ne_lt();
 	else return false;
 	return true;
 }

@@ -139,7 +139,6 @@ static bool bas_check_message(char* msg)
 		if ('.' == ch) continue;
 		if (',' == ch) continue;
 		if (' ' == ch) continue;
-		if ('!' == ch) continue;
 		if ('=' == ch) continue;
 		if ('<' == ch) continue;
 		if ('>' == ch) continue;
