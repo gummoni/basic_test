@@ -157,11 +157,13 @@
     <ClInclude Include="bas_script.h" />
     <ClInclude Include="bas_comm.h" />
     <ClInclude Include="dictionary.h" />
+    <ClInclude Include="gosub_heap.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="script_reader.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="gosub_heap.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="bas_packet.c" />
     <ClCompile Include="csv_basic.c" />

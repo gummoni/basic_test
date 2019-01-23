@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdbool.h>
+#include "config.h"
 #include "csv_basic.h"
 #include "bas_packet.h"
 #include "script_reader.h"
@@ -16,11 +12,11 @@ static char* msgs[] = {
 	"SENDER,AXIS_Z1,W:13,I=2",
 	"SENDER,AXIS_Z1,W:14,END",
 	"SENDER,AXIS_Z1,W:15,*TEST",
-	"SENDER,AXIS_Z1,W:16,GOSUB *TEST2",
+	"SENDER,AXIS_Z1,W:16,GOSUB *TEST2 11",
 	"SENDER,AXIS_Z1,W:17,GOTO 13",
 	"SENDER,AXIS_Z1,W:18,RETURN",
-	"SENDER,AXIS_Z1,W:19,*TEST2",
-	"SENDER,AXIS_Z1,W:20,I=3",
+	"SENDER,AXIS_Z1,W:19,*TEST2 J",
+	"SENDER,AXIS_Z1,W:20,I=J",
 	"SENDER,AXIS_Z1,W:21,RETURN",
 	"SENDER,AXIS_Z1,S:10",
 	

@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdbool.h>
+#include "config.h"
 #include "dictionary.h"
 #include "bas_packet.h"
 #include "script_reader.h"
@@ -126,7 +122,6 @@ static inline void parse_val(char ch)
 		else if ('%' == ch) 
 		{
 			//数字：終端
-			reader.context[idx++] = '%';
 			if ('(' == *reader.rp)
 			{
 				int idx;
@@ -152,7 +147,6 @@ static inline void parse_val(char ch)
 		else if ('$' == ch) 
 		{
 			//文字列：終端
-			reader.context[idx++] = '$';
 			reader.token = SYN_STR;
 			reader.context[idx] = '\0';
 			break;
@@ -161,7 +155,6 @@ static inline void parse_val(char ch)
 		{
 			//不明な文字：終端
 			seek(-1);
-			reader.context[idx++] = '%';
 			reader.context[idx] = '\0';
 			reader.token = SYN_NUM;
 			break;

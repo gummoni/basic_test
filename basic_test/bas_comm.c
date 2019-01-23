@@ -1,11 +1,7 @@
 //=============================================================================
 //パケット解析
 //=============================================================================
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdbool.h>
+#include "config.h"
 #include "csv_basic.h"
 #include "bas_comm.h"
 #include "bas_packet.h"

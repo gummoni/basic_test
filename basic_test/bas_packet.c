@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdbool.h>
+#include "config.h"
 #include "bas_packet.h"
 #include "csv_basic.h"
 

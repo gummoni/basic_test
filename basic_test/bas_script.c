@@ -1,18 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <string.h>
-#include <stdbool.h>
+#include "config.h"
 #include "csv_basic.h"
 #include "bas_script.h"
 #include "bas_packet.h"
 #include "dictionary.h"
 #include "script_reader.h"
-
-//GOSUB系のヒープ領域
-#define MAX_GOSUB_HEAP_SIZE		4
-static unsigned char heap_memory[MAX_GOSUB_HEAP_SIZE];
-static unsigned char heap_idx = 0;
+#include "gosub_heap.h"
 
 //受信バッファ
 static char recv_buf[PROGRAM_LINE_COUNT];
@@ -117,10 +109,9 @@ static void bas_script_goto(BAS_PACKET* packet)
 //GOSUB文
 static void bas_script_gosub(BAS_PACKET* packet)
 {
-	if (heap_idx < MAX_GOSUB_HEAP_SIZE)
+	if (heap_enqueue(state.run_no))
 	{
-		heap_memory[heap_idx++] = state.run_no;
- 		bas_script_goto(packet);
+		bas_script_goto(packet);
 	}
 	else
 	{
@@ -131,11 +122,7 @@ static void bas_script_gosub(BAS_PACKET* packet)
 //RETURN文
 static void bas_script_return(BAS_PACKET* packet)
 {
-	if (0 < heap_idx)
-	{
-		state.run_no = heap_memory[--heap_idx];
-	}
-	else
+	if (!heap_dequeue(&state.run_no))
 	{
 		state.err_code = err_invalid_return;
 	}
@@ -191,14 +178,18 @@ static void bas_script_execute(BAS_PACKET* packet)
 //スクリプト実行処理
 void bas_script_job(void)
 {
-	//エラーでなければスクリプト実行
-	if ((0 != state.err_code) || (0 == state.run_no)) return;
-	//プログラム番地のコードをCSV分解して実行
 	BAS_PACKET packet;
-	packet.reciever = packet.sender = SELF_NAME;
-	packet.response = NULL;
-	strcpy(recv_buf, program_areas[state.run_no++]);
-	if (!bas_parse_parameter(&packet, recv_buf, ' ')) return;
-	if ('*' == packet.opcode[0]) return;
-	bas_script_execute(&packet);
+
+	while (true)
+	{
+		if ((0 != state.err_code) || (0 == state.run_no)) return;
+		//プログラム番地のコードをCSV分解して実行
+		packet.reciever = packet.sender = SELF_NAME;
+		packet.response = NULL;
+		strcpy(recv_buf, program_areas[state.run_no++]);
+		if (!bas_parse_parameter(&packet, recv_buf, ' ')) return;
+		if ('*' == packet.opcode[0]) continue;
+		bas_script_execute(&packet);
+		return;
+	}
 }
