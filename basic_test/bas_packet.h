@@ -34,16 +34,26 @@ typedef enum
 	NOTIFY_ACK = 'n',
 
 	//ステータス取得
-	STATUS = 'S',
-	STATUS_ACK = 's',
+	STATUS = 'Z',
+	STATUS_ACK = 'z',
+
+	//ファーム読込み
+	LOAD = 'X',
+	LOAD_ACK = 'x',
+
+	//ファーム保存
+	SAVE = 'O',
+	SAVE_ACK = 'o',
 
 } COMMAND;
 
 //エラーコード
 typedef enum
 {
+	err_none,				//エラー無し
 	err_invalid_return,		//リターン先が存在しない
 	err_out_of_return,		//ヒープ領域オーバー
+	err_jump,				//ジャンプ失敗
 } error_code;
 
 //動作状態
@@ -92,9 +102,10 @@ typedef struct
 } BAS_SCRIPT_TABLE;
 
 //プログラム領域
-#define PROGRAM_LINE_COUNT	24
-#define PROGRAM_LINE_MAX	100
+#define PROGRAM_LINE_COUNT	32
+#define PROGRAM_LINE_MAX	200
 extern char program_areas[PROGRAM_LINE_MAX][PROGRAM_LINE_COUNT];
+#define SELF_NAME	program_areas[0]
 
 //BAS翻訳機の状態
 extern BASIC_STATE state;

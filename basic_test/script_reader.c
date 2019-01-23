@@ -331,8 +331,17 @@ static void rpn_decode(rpn_info* self)
 	switch (self->state)
 	{
 	case 0:
-		self->left = convert_value(token, reader.context);
-		self->state = 1;
+		if ((CALC_PLUS == token) || (CALC_MINUS == token))
+		{
+			self->left = 0;
+			self->old_op = token;
+			self->state = 2;
+		}
+		else
+		{
+			self->left = convert_value(token, reader.context);
+			self->state = 1;
+		}
 		break;
 
 	case 1:

@@ -22,25 +22,96 @@ static char recv_buf[PROGRAM_LINE_COUNT];
 //script decoder
 //=============================================================================
 
+//ラベル照合
+static bool bas_check_label(char* label, char* msg)
+{
+	while (true)
+	{
+		char a = *(label++);
+		char b = *(msg++);
+		if (a == '\0') return true;
+		if (a != b) return false;
+	}
+}
+
+//ラベル位置取得（行番号も含む）
+static int bas_search_label(char* label, bool* is_label)
+{
+	int idx;
+	char ch = label[0];
+
+	if ('0' <= ch && ch <= '9')
+	{
+		//数字
+		*is_label = false;
+		return strtol(label, NULL, 0);
+	}
+	if ('*' == ch)
+	{
+		//ジャンプ先
+		for (idx = 0; idx < PROGRAM_LINE_MAX; idx++)
+		{
+			if (bas_check_label(label, &program_areas[idx]))
+			{
+				*is_label = true;
+				return idx;
+			}
+		}
+	}
+	//該当なし
+	state.err_code = err_jump;
+	return 0;
+}
+
 //IF文
 static void bas_script_if(BAS_PACKET* packet)
 {
+	bool is_label;
 	if (rpn_judge(&packet->prm1))
 	{
 		//TRUE
-		state.run_no = strtol(packet->prm2, NULL, 0);
+		state.run_no = bas_search_label(packet->prm2, &is_label);
+		if (is_label) state.run_no++;
 	}
 	else
 	{
 		//FALSE
-		state.run_no = strtol(packet->prm3, NULL, 0);
+		if (NULL != packet->prm3)
+		{
+			state.run_no = bas_search_label(packet->prm3, &is_label);
+			if (is_label) state.run_no++;
+		}
 	}
 }
 
 //GOTO文
 static void bas_script_goto(BAS_PACKET* packet)
 {
-	state.run_no = strtol(packet->prm1, NULL, 0);
+	bool is_label;
+	state.run_no = bas_search_label(packet->prm1, &is_label);
+
+	if (is_label)
+	{
+		//引数代入
+		BAS_PACKET parse;
+		parse.reciever = parse.sender = SELF_NAME;
+		parse.response = NULL;
+		strcpy(recv_buf, program_areas[state.run_no++]);
+		if (bas_parse_parameter(&parse, recv_buf, ' '))
+		{
+			if (NULL == parse.prm1) return;
+			if (NULL == packet->prm2) return;
+			dic_set(parse.prm1, packet->prm2);
+
+			if (NULL == parse.prm2) return;
+			if (NULL == packet->prm3) return;
+			dic_set(parse.prm2, packet->prm3);
+
+			if (NULL == parse.prm2) return;
+			if (NULL == packet->prm3) return;
+			dic_set(parse.prm2, packet->prm3);
+		}
+	}
 }
 
 //GOSUB文
@@ -49,7 +120,7 @@ static void bas_script_gosub(BAS_PACKET* packet)
 	if (heap_idx < MAX_GOSUB_HEAP_SIZE)
 	{
 		heap_memory[heap_idx++] = state.run_no;
-		state.run_no = strtol(packet->prm1, NULL, 0);
+ 		bas_script_goto(packet);
 	}
 	else
 	{
@@ -83,8 +154,8 @@ static void bas_script_notify(BAS_PACKET* packet)
 	char* to = packet->prm1;
 	char* key = packet->prm2;
 	char* val = rpn_get_value(key);
-	sprintf(resp, "%s=%s", key, val);
-	bas_send_message(program_areas[0], to, NOTIFY, resp);
+	sprintf(resp, "%s.%s=%s", SELF_NAME, key, val);
+	bas_send_message(SELF_NAME, to, NOTIFY, resp);
 }
 
 #define SCRIPT_COMMAND_TABLE_LENGTH	6
@@ -124,9 +195,10 @@ void bas_script_job(void)
 	if ((0 != state.err_code) || (0 == state.run_no)) return;
 	//プログラム番地のコードをCSV分解して実行
 	BAS_PACKET packet;
-	packet.reciever = packet.sender = program_areas[0];
+	packet.reciever = packet.sender = SELF_NAME;
 	packet.response = NULL;
 	strcpy(recv_buf, program_areas[state.run_no++]);
 	if (!bas_parse_parameter(&packet, recv_buf, ' ')) return;
+	if ('*' == packet.opcode[0]) return;
 	bas_script_execute(&packet);
 }

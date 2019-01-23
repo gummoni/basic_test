@@ -57,13 +57,28 @@ static bool bas_comm_errclear(BAS_PACKET_BODY* context)
 	return true;
 }
 
+//ステータス取得(返信処理の中で返信電文を作成している)
 static bool bas_comm_status(BAS_PACKET_BODY* context)
 {
 	return true;
 }
 
+//ファーム読込み
+static bool bas_comm_load(BAS_PACKET_BODY* context)
+{
+	//TODO
+	return true;
+}
+
+//ファーム書込み
+static bool bas_comm_save(BAS_PACKET_BODY* context)
+{
+	//TODO
+	return true;
+}
+
 //通信パケット受信解析
-#define PACKET_BAS_COMMAND_TABLE 8
+#define PACKET_BAS_COMMAND_TABLE 9
 static BAS_PACKET_TABLE packet_command_table[PACKET_BAS_COMMAND_TABLE] =
 {
 	{ READ		, bas_comm_read			},		// パラメータ読込み（戻り値：値）
@@ -73,6 +88,8 @@ static BAS_PACKET_TABLE packet_command_table[PACKET_BAS_COMMAND_TABLE] =
 	{ ERR_CLEAR	, bas_comm_errclear		},		// エラー解除（戻り値：なし）
 	{ NOTIFY	, rpn_execute			},		// 計算コマンド（戻り値：値）
 	{ STATUS	, bas_comm_status       },		// ステータス取得
+	{ LOAD		, bas_comm_load			},		// ファーム読込み
+	{ SAVE		, bas_comm_save			},		// ファーム保存
 };
 
 //パケット実行
@@ -103,15 +120,34 @@ static bool bas_comm_check_from(BAS_PACKET* self)
 //１文字取得
 static bool bas_check_message(char* msg)
 {
-	for (int i = 0; i < 32; i++)
+	int i;
+	for (i = 0; i < 64; i++)
 	{
 		char ch = msg[i];
 		if ('a' <= ch && ch <= 'z') continue;
 		if ('A' <= ch && ch <= 'Z') continue;
+		if ('0' <= ch && ch <= '9') continue;
+		if ('(' == ch) continue;
+		if (')' == ch) continue;
+		if ('+' == ch) continue;
+		if ('-' == ch) continue;
+		if ('*' == ch) continue;
+		if ('/' == ch) continue;
+		if ('.' == ch) continue;
 		if (',' == ch) continue;
 		if (' ' == ch) continue;
+		if ('!' == ch) continue;
+		if ('=' == ch) continue;
+		if ('<' == ch) continue;
+		if ('>' == ch) continue;
+		if ('$' == ch) continue;
+		if ('%' == ch) continue;
+		if ('_' == ch) continue;
+		if (':' == ch) continue;
+		if ('\"' == ch) continue;
 		if ('\n' == ch) continue;
 		if ('\0' == ch) return true;
+		return false;
 	}
 	return false;
 }
@@ -141,12 +177,12 @@ bool bas_comm_parse(BAS_PACKET* packet, char* msg)
 	//----------------------------------------------------------------------------
 	//[SENDER]
 	packet->sender = msg;	
-	for (msg++; ',' != *msg; msg++) if ('\0' == *msg) return false;
+	for (msg++; ',' != *msg; msg++) if (('\0' == *msg) || ('\n' == *msg)) return false;
 	*(msg++) = '\0';
 
 	//[RECIEVER]
 	packet->reciever = msg;
-	for (msg++; ',' != *msg; msg++) if ('\0' == *msg) return false;
+	for (msg++; ',' != *msg; msg++) if (('\0' == *msg) || ('\n' == *msg)) return false;
 	*(msg++) = '\0';
 	packet->listen_id = bas_comm_get_topic_id(packet->reciever);
 	if (0 > packet->listen_id) return false;
@@ -171,7 +207,7 @@ void bas_comm_job(char* recv_message)
 	//パケット実行
 	bool is_success = bas_comm_execute(&packet);
 	//自分あてなら返信
-	if (0 == strcmp(program_areas[0], packet.reciever))
+	if (0 == strcmp(SELF_NAME, packet.reciever))
 	{
 		//自分宛であった
 		char result[16];
@@ -199,6 +235,6 @@ void bas_comm_job(char* recv_message)
 			sprintf(result, "NG,%d,%d", state.run_no, state.err_code);
 		}
 		//返信
-		bas_send_message(program_areas[0], packet.sender, packet.command | 0x20, result);
+		bas_send_message(SELF_NAME, packet.sender, packet.command | 0x20, result);
 	}
 }
