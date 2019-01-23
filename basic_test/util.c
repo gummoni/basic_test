@@ -104,3 +104,20 @@ int label_search(char* label, bool* is_label)
 	return 0;
 }
 
+//宛先確認（トピックID取得）
+bool get_topic_id(char* topic, int* result)
+{
+	int i;
+	for (i = 0; i < 10; i++)
+	{
+		if (0 == strcmp(topic, program_areas[i]))
+		{
+			*result = i;
+			return true;
+		}
+	}
+
+	*result = -1;
+	return false;
+}
+

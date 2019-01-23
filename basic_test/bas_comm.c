@@ -100,17 +100,6 @@ static bool bas_comm_execute(BAS_PACKET* packet)
 	return false;
 }
 
-//宛先確認
-static bool bas_comm_check_from(BAS_PACKET* self)
-{
-	int i;
-	for (i = 0; i < 10; i++)
-	{
-		if (0 == strcmp(program_areas[i], self->reciever)) return true;
-	}
-	return false;
-}
-
 //１文字取得
 static bool bas_check_message(char* msg)
 {
@@ -167,17 +156,6 @@ static bool bas_check_message(char* msg)
 	return false;
 }
 
-//トピックID取得(0-9=該当あり,-1=該当なし
-static int bas_comm_get_topic_id(char* topic)
-{
-	int i;
-	for (i = 0; i < 10; i++)
-	{
-		if (0 == strcmp(topic, program_areas[i])) return i;
-	}
-	return -1;
-}
-
 //--------------------------------------------
 //受信メッセージを解析する
 //--------------------------------------------
@@ -199,8 +177,7 @@ bool bas_comm_parse(BAS_PACKET* packet, char* msg)
 	packet->reciever = msg;
 	for (msg++; ',' != *msg; msg++) if (('\0' == *msg) || ('\n' == *msg)) return false;
 	*(msg++) = '\0';
-	packet->listen_id = bas_comm_get_topic_id(packet->reciever);
-	if (0 > packet->listen_id) return false;
+	if (!get_topic_id(packet->reciever, &packet->listen_id)) return false;		//宛先出なかった
 
 	//[COMMAND]
 	packet->command = *(msg++);
@@ -217,39 +194,44 @@ void bas_comm_job(char* recv_message)
 
 	//通信パケット解析
 	if (!bas_comm_parse(&packet, recv_message)) return;
+
+	//TODO:右から左、左から右へブロードキャスト
+
 	//リッスン対象かチェック
-	if (!bas_comm_check_from(&packet)) return;
-	//パケット実行
-	bool is_success = bas_comm_execute(&packet);
-	//自分あてなら返信
-	if (0 == strcmp(SELF_NAME, packet.reciever))
+	if (0 <= packet.listen_id)
 	{
-		//自分宛であった
-		char result[16];
-		if (is_success)
+		//パケット実行
+		bool is_success = bas_comm_execute(&packet);
+		//自分あてなら返信
+		if (0 == strcmp(SELF_NAME, packet.reciever))
 		{
-			if (STATUS == packet.command)
+			//自分宛であった
+			char result[16];
+			if (is_success)
 			{
-				//ステータス返送
-				sprintf(result, "OK,%d,%d", state.run_no, state.err_code);
-			}
-			else if (NULL == packet.response)
-			{
-				//レスポンス無し
-				strcpy(result, "OK");
+				if (STATUS == packet.command)
+				{
+					//ステータス返送
+					sprintf(result, "OK,%d,%d", state.run_no, state.err_code);
+				}
+				else if (NULL == packet.response)
+				{
+					//レスポンス無し
+					strcpy(result, "OK");
+				}
+				else
+				{
+					//レスポンス有り
+					sprintf(result, "OK,%s", packet.response);
+				}
 			}
 			else
 			{
-				//レスポンス有り
-				sprintf(result, "OK,%s", packet.response);
+				//エラー応答
+				sprintf(result, "NG,%d,%d", state.run_no, state.err_code);
 			}
+			//返信
+			send_message(SELF_NAME, packet.sender, packet.command | 0x20, result);
 		}
-		else
-		{
-			//エラー応答
-			sprintf(result, "NG,%d,%d", state.run_no, state.err_code);
-		}
-		//返信
-		send_message(SELF_NAME, packet.sender, packet.command | 0x20, result);
 	}
 }

@@ -18,5 +18,6 @@
 
 
 typedef unsigned char byte;
+typedef unsigned short ushort;
 
 #endif//__CONFIG_H__

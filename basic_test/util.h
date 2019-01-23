@@ -62,6 +62,7 @@ typedef struct
 {
 	int run_no;
 	error_code err_code;
+	int delay_count;
 } BASIC_STATE;
 
 //パケット構造体
@@ -102,5 +103,6 @@ extern BASIC_STATE state;
 extern void send_message(char* from, char* to, char cmd, char* message);
 extern bool parse_parameter(BAS_PACKET* packet, char* msg, char separator);
 extern int label_search(char* label, bool* is_label);
+extern bool get_topic_id(char* topic, int* result);
 
 #endif//__UTIL_H__

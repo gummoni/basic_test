@@ -107,15 +107,73 @@ static void bas_script_notify(BAS_PACKET* packet)
 	send_message(SELF_NAME, to, NOTIFY, resp);
 }
 
-#define SCRIPT_COMMAND_TABLE_LENGTH	6
+//速度設定
+static void bas_script_speed(BAS_PACKET* packet)
+{
+	//TODO
+}
+
+//絶対値移動
+static void bas_script_abs(BAS_PACKET* packet)
+{
+	//TODO
+}
+
+//相対値移動
+static void bas_script_inc(BAS_PACKET* packet)
+{
+	//TODO
+}
+
+//原点復帰
+static void bas_script_org(BAS_PACKET* packet)
+{
+	//TODO
+}
+
+//モータ停止
+static void bas_script_stop(BAS_PACKET* packet)
+{
+	//TODO
+}
+
+//エラーチェック処理
+static void bas_script_check(BAS_PACKET* packet)
+{
+	//TODO
+}
+
+//待ち処理
+static void bas_script_loop(BAS_PACKET* packet)
+{
+	//TODO
+}
+
+//遅延処理
+static void bas_script_delay(BAS_PACKET* packet)
+{
+	//TODO
+}
+
+#define SCRIPT_COMMAND_TABLE_LENGTH	14
 static BAS_SCRIPT_TABLE script_command_table[SCRIPT_COMMAND_TABLE_LENGTH] =
 {
-	{ "IF"		, bas_script_if			},
-	{ "GOTO"	, bas_script_goto		},
-	{ "GOSUB"	, bas_script_gosub		},
-	{ "RETURN"	, bas_script_return		},
-	{ "END"		, bas_script_end		},
-	{ "NOTIFY"	, bas_script_notify		},
+	//---基本命令---
+	{ "IF"		, bas_script_if			},	//0
+	{ "GOTO"	, bas_script_goto		},	//1
+	{ "GOSUB"	, bas_script_gosub		},	//2
+	{ "RETURN"	, bas_script_return		},	//3
+	{ "END"		, bas_script_end		},	//4
+	{ "NOTIFY"	, bas_script_notify		},	//5
+	//----拡張命令（PB210）---
+	{ "SPEED"	, bas_script_speed		},	//6
+	{ "ABS"		, bas_script_abs		},	//7
+	{ "INC"		, bas_script_inc		},	//8
+	{ "ORG"		, bas_script_org		},	//9
+	{ "STOP"	, bas_script_stop		},	//10
+	{ "CHECK"	, bas_script_check		},	//11
+	{ "LOOP"	, bas_script_loop		},	//12
+	{ "DELAY"	, bas_script_delay		},	//13
 };
 
 //コマンド実行
