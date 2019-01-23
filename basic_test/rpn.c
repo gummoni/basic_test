@@ -1,5 +1,5 @@
 #include "config.h"
-#include "dictionary.h"
+#include "dic.h"
 #include "rpn.h"
 
 static rpn_instance self;

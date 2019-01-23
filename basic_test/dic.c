@@ -1,9 +1,10 @@
 #include "config.h"
-#include "dictionary.h"
+#include "dic.h"
 
-static char _dictionary[VARIABLE_MEMORY_SIZE][2][VARIABLE_NAME_LENGTH];    //1kB[RAM]
 #define DIC_IDX_KEY		0
 #define DIC_IDX_VAL		1
+static char _dictionary[VARIABLE_MEMORY_SIZE][2][VARIABLE_NAME_LENGTH];    //1kB[RAM]
+
 
 //•Ï”‚Ì¯•ÊƒVƒ“ƒ{ƒ‹‚ğíœ
 static void chomp_symbol(char* msg)

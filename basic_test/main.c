@@ -1,6 +1,6 @@
 #include "config.h"
-#include "iot_basic.h"
-#include "rpn.h"
+#include "bas_comm.h"
+#include "bas_script.h"
 
 //転送データ
 static char* msgs[] = {
@@ -52,23 +52,22 @@ static char* msgs[] = {
 void main() {
 	char msg[64];
 
-	bas_init();
+	bas_script_init();
 
 	//プログラム書込み&実行
 	for (int i = 0; msgs[i] != NULL; i++)
 	{
 		printf("%d:", state.run_no);
 		strcpy(msg, msgs[i]);
-		bas_main(msg);
+		bas_comm_job(msg);
+		bas_script_job();
 	}
 
 	//スクリプト実行中
-	static char* status_read = "S,AXIS_Z1,Z:\n";
 	while (0 < state.run_no)
 	{
 		printf("%d:", state.run_no);
-		strcpy(msg, status_read);
-		bas_main(msg);
+		bas_script_job();
 		printf("\n");
 	}
 	printf("\n\n\n\n\n\n\n\n");

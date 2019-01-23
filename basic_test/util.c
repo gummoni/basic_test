@@ -1,5 +1,4 @@
 #include "config.h"
-#include "iot_basic.h"
 
 //送信バッファ
 static char send_buf[PROGRAM_LINE_COUNT];
@@ -25,7 +24,7 @@ char program_areas[PROGRAM_LINE_MAX][PROGRAM_LINE_COUNT] =
 };
 
 //返信電文作成
-void bas_send_message(char* from, char* to, char cmd, char* message)
+void send_message(char* from, char* to, char cmd, char* message)
 {
 	//電文例：SENDER,RECIEVER,1:PARAMETER...\n	
 	char* msg = send_buf;
@@ -42,7 +41,7 @@ void bas_send_message(char* from, char* to, char cmd, char* message)
 }
 
 //パラメータ解析
-bool bas_parse_parameter(BAS_PACKET* packet, char* msg, char separator)
+bool parse_parameter(BAS_PACKET* packet, char* msg, char separator)
 {
 	packet->opcode = msg;
 	packet->prm1 = packet->prm2 = packet->prm3 = packet->prm4 = NULL;
@@ -65,7 +64,7 @@ bool bas_parse_parameter(BAS_PACKET* packet, char* msg, char separator)
 }
 
 //ラベル照合
-bool bas_check_label(char* label, char* msg)
+static bool label_compare(char* label, char* msg)
 {
 	while (true)
 	{
@@ -77,7 +76,7 @@ bool bas_check_label(char* label, char* msg)
 }
 
 //ラベル位置取得（行番号も含む）
-int bas_search_label(char* label, bool* is_label)
+int label_search(char* label, bool* is_label)
 {
 	int idx;
 	char ch = label[0];
@@ -93,7 +92,7 @@ int bas_search_label(char* label, bool* is_label)
 		//ジャンプ先
 		for (idx = 0; idx < PROGRAM_LINE_MAX; idx++)
 		{
-			if (bas_check_label(label, &program_areas[idx]))
+			if (label_compare(label, &program_areas[idx]))
 			{
 				*is_label = true;
 				return idx;

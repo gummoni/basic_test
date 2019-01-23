@@ -1,5 +1,5 @@
-#ifndef __BAS_UTIL_H__
-#define __BAS_UTIL_H__
+#ifndef __UTIL_H__
+#define __UTIL_H__
 
 
 //	コマンドフォーマット
@@ -89,18 +89,6 @@ typedef struct
 	char* response;	//返信用メッセージポインタ
 } BAS_PACKET_BODY;
 
-//コマンドテーブル
-typedef struct
-{
-	char name;
-	bool(*execute)(BAS_PACKET_BODY* context);
-} BAS_PACKET_TABLE;
-
-typedef struct
-{
-	char* name;
-	void(*execute)(BAS_PACKET*);
-} BAS_SCRIPT_TABLE;
 
 //プログラム領域
 #define PROGRAM_LINE_COUNT	32
@@ -111,10 +99,8 @@ extern char program_areas[PROGRAM_LINE_MAX][PROGRAM_LINE_COUNT];
 //BAS翻訳機の状態
 extern BASIC_STATE state;
 
-extern void bas_send_message(char* from, char* to, char cmd, char* message);
-extern bool bas_parse_parameter(BAS_PACKET* packet, char* msg, char separator);
-extern bool bas_comm_parse(BAS_PACKET* packet, char* msg);
-extern bool bas_check_label(char* label, char* msg);
-extern int bas_search_label(char* label, bool* is_label);
+extern void send_message(char* from, char* to, char cmd, char* message);
+extern bool parse_parameter(BAS_PACKET* packet, char* msg, char separator);
+extern int label_search(char* label, bool* is_label);
 
-#endif//__BAS_UTIL_H__
+#endif//__UTIL_H__

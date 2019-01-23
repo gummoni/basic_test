@@ -151,25 +151,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="bas_util.h" />
+    <ClInclude Include="util.h" />
     <ClInclude Include="config.h" />
-    <ClInclude Include="iot_basic.h" />
     <ClInclude Include="bas_script.h" />
     <ClInclude Include="bas_comm.h" />
-    <ClInclude Include="dictionary.h" />
-    <ClInclude Include="gosub_heap.h" />
-    <ClInclude Include="pch.h" />
+    <ClInclude Include="dic.h" />
+    <ClInclude Include="heap.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="rpn.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="gosub_heap.c" />
+    <ClCompile Include="heap.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="bas_util.c" />
-    <ClCompile Include="iot_basic.c" />
+    <ClCompile Include="util.c" />
     <ClCompile Include="bas_script.c" />
     <ClCompile Include="bas_comm.c" />
-    <ClCompile Include="dictionary.c" />
+    <ClCompile Include="dic.c" />
     <ClCompile Include="rpn.c" />
   </ItemGroup>
   <ItemGroup>

@@ -1,8 +1,7 @@
 //=============================================================================
-//パケット解析
+//通信プロトコル
 //=============================================================================
 #include "config.h"
-#include "iot_basic.h"
 #include "bas_comm.h"
 #include "rpn.h"
 
@@ -74,7 +73,7 @@ static bool bas_comm_save(BAS_PACKET_BODY* context)
 
 //通信パケット受信解析
 #define PACKET_BAS_COMMAND_TABLE 9
-static BAS_PACKET_TABLE packet_command_table[PACKET_BAS_COMMAND_TABLE] =
+static BAS_COMM_TABLE packet_command_table[PACKET_BAS_COMMAND_TABLE] =
 {
 	{ READ		, bas_comm_read			},		// パラメータ読込み（戻り値：値）
 	{ WRITE		, bas_comm_write		},		// パラメータ書込み（戻り値：なし）
@@ -92,7 +91,7 @@ static bool bas_comm_execute(BAS_PACKET* packet)
 {
 	for (int i = 0; i < PACKET_BAS_COMMAND_TABLE; i++)
 	{
-		BAS_PACKET_TABLE cmd = packet_command_table[i];
+		BAS_COMM_TABLE cmd = packet_command_table[i];
 		if (packet->command == (char)cmd.name)
 		{
  			return cmd.execute((BAS_PACKET_BODY*)&packet->opcode);
@@ -116,10 +115,19 @@ static bool bas_comm_check_from(BAS_PACKET* self)
 static bool bas_check_message(char* msg)
 {
 	int i;
+	bool is_qout = false;
 	for (i = 0; i < 64; i++)
 	{
 		char ch = msg[i];
-		if ('a' <= ch && ch <= 'z') continue;
+		if ('a' <= ch && ch <= 'z')
+		{
+			if (!is_qout)
+			{
+				//大文字に変換する
+				msg[i] = ch & 0xbf;
+			}
+			continue;
+		}
 		if ('A' <= ch && ch <= 'Z') continue;
 		if ('0' <= ch && ch <= '9') continue;
 		if ('(' == ch) continue;
@@ -139,7 +147,20 @@ static bool bas_check_message(char* msg)
 		if ('%' == ch) continue;
 		if ('_' == ch) continue;
 		if (':' == ch) continue;
-		if ('\"' == ch) continue;
+		if ('\"' == ch)
+		{
+			is_qout ^= true;
+			continue;
+		}
+		if ('\t' == ch)
+		{
+			if (!is_qout)
+			{
+				//タブをスペースに変換
+				msg[i] = ' ';
+			}
+			continue;
+		}
 		if ('\n' == ch) continue;
 		if ('\0' == ch) return true;
 		return false;
@@ -187,7 +208,7 @@ bool bas_comm_parse(BAS_PACKET* packet, char* msg)
 	if (':' != *(msg++)) return false;
 
 	//[PARAMETER]
-	return bas_parse_parameter(packet, msg, ',');
+	return parse_parameter(packet, msg, ',');
 }
 
 //通信電文解析処理
@@ -230,6 +251,6 @@ void bas_comm_job(char* recv_message)
 			sprintf(result, "NG,%d,%d", state.run_no, state.err_code);
 		}
 		//返信
-		bas_send_message(SELF_NAME, packet.sender, packet.command | 0x20, result);
+		send_message(SELF_NAME, packet.sender, packet.command | 0x20, result);
 	}
 }

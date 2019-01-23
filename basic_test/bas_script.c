@@ -1,20 +1,20 @@
+//=============================================================================
+//スクリプト解析
+//=============================================================================
 #include "config.h"
-#include "iot_basic.h"
 #include "bas_script.h"
-#include "dictionary.h"
+#include "dic.h"
 #include "rpn.h"
-#include "gosub_heap.h"
+#include "heap.h"
 
 //受信バッファ
 static char recv_buf[PROGRAM_LINE_COUNT];
 
 
-//=============================================================================
-//script decoder
-//=============================================================================
 void bas_script_init(void)
 {
 	dic_clear();
+	state.run_no = state.err_code = 0;
 }
 
 //IF文
@@ -24,7 +24,7 @@ static void bas_script_if(BAS_PACKET* packet)
 	if (rpn_judge(&packet->prm1))
 	{
 		//TRUE
-		state.run_no = bas_search_label(packet->prm2, &is_label);
+		state.run_no = label_search(packet->prm2, &is_label);
 		if (is_label) state.run_no++;
 	}
 	else
@@ -32,7 +32,7 @@ static void bas_script_if(BAS_PACKET* packet)
 		//FALSE
 		if (NULL != packet->prm3)
 		{
-			state.run_no = bas_search_label(packet->prm3, &is_label);
+			state.run_no = label_search(packet->prm3, &is_label);
 			if (is_label) state.run_no++;
 		}
 	}
@@ -42,7 +42,7 @@ static void bas_script_if(BAS_PACKET* packet)
 static void bas_script_goto(BAS_PACKET* packet)
 {
 	bool is_label;
-	state.run_no = bas_search_label(packet->prm1, &is_label);
+	state.run_no = label_search(packet->prm1, &is_label);
 
 	if (is_label)
 	{
@@ -51,7 +51,7 @@ static void bas_script_goto(BAS_PACKET* packet)
 		parse.reciever = parse.sender = SELF_NAME;
 		parse.response = NULL;
 		strcpy(recv_buf, program_areas[state.run_no++]);
-		if (bas_parse_parameter(&parse, recv_buf, ' '))
+		if (parse_parameter(&parse, recv_buf, ' '))
 		{
 			if (NULL == parse.prm1) return;
 			if (NULL == packet->prm2) return;
@@ -104,7 +104,7 @@ static void bas_script_notify(BAS_PACKET* packet)
 	char* key = packet->prm2;
 	char* val = rpn_get_value(key);
 	sprintf(resp, "%s.%s=%s", SELF_NAME, key, val);
-	bas_send_message(SELF_NAME, to, NOTIFY, resp);
+	send_message(SELF_NAME, to, NOTIFY, resp);
 }
 
 #define SCRIPT_COMMAND_TABLE_LENGTH	6
@@ -149,7 +149,7 @@ void bas_script_job(void)
 		packet.reciever = packet.sender = SELF_NAME;
 		packet.response = NULL;
 		strcpy(recv_buf, program_areas[state.run_no++]);
-		if (!bas_parse_parameter(&packet, recv_buf, ' ')) return;
+		if (!parse_parameter(&packet, recv_buf, ' ')) return;
 		if ('*' == packet.opcode[0]) continue;
 		bas_script_execute(&packet);
 		return;

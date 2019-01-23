@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pch.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -30,26 +27,20 @@
     <ClInclude Include="config.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="dictionary.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
-    <ClInclude Include="gosub_heap.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="rpn.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="bas_util.h">
+    <ClInclude Include="heap.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="iot_basic.h">
+    <ClInclude Include="dic.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="util.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dictionary.c">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="bas_comm.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
@@ -59,16 +50,16 @@
     <ClCompile Include="main.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="gosub_heap.c">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="rpn.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="bas_util.c">
+    <ClCompile Include="heap.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="iot_basic.c">
+    <ClCompile Include="dic.c">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="util.c">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>

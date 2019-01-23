@@ -1,11 +1,11 @@
 #include "config.h"
-#include "gosub_heap.h"
+#include "heap.h"
 
 //GOSUB系のヒープ領域
 static byte heap_memory[MAX_GOSUB_HEAP_SIZE];
 static byte heap_idx = 0;
 
-
+//ヒープメモリにエンキュー
 bool heap_enqueue(byte value)
 {
 	if (heap_idx < MAX_GOSUB_HEAP_SIZE)
@@ -19,6 +19,7 @@ bool heap_enqueue(byte value)
 	}
 }
 
+//ヒープ領域からデキュー
 bool heap_dequeue(byte* value)
 {
 	if (0 < heap_idx)
