@@ -1,6 +1,5 @@
 #include "config.h"
-#include "csv_basic.h"
-#include "bas_packet.h"
+#include "iot_basic.h"
 #include "rpn.h"
 
 //転送データ
@@ -61,7 +60,6 @@ void main() {
 		printf("%d:", state.run_no);
 		strcpy(msg, msgs[i]);
 		bas_main(msg);
-		printf("\n");
 	}
 
 	//スクリプト実行中

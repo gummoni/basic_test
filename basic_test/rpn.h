@@ -1,6 +1,5 @@
 #ifndef __RPN_H__
 #define __RPN_H__
-#include "config.h"
 
 typedef enum {
 	// 0  : enter
@@ -61,8 +60,8 @@ typedef struct {
 	char tmp_value[VARIABLE_NAME_LENGTH];
 	char tmp_eval_left[VARIABLE_NAME_LENGTH];
 	char tmp_eval_right[VARIABLE_NAME_LENGTH];
-
-} rpn_reader;
+	rpn_token tmp_eval_op;
+} rpn_instance;
 
 typedef struct
 {

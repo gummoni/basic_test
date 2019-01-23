@@ -151,9 +151,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="bas_packet.h" />
+    <ClInclude Include="bas_util.h" />
     <ClInclude Include="config.h" />
-    <ClInclude Include="csv_basic.h" />
+    <ClInclude Include="iot_basic.h" />
     <ClInclude Include="bas_script.h" />
     <ClInclude Include="bas_comm.h" />
     <ClInclude Include="dictionary.h" />
@@ -165,8 +165,8 @@
   <ItemGroup>
     <ClCompile Include="gosub_heap.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="bas_packet.c" />
-    <ClCompile Include="csv_basic.c" />
+    <ClCompile Include="bas_util.c" />
+    <ClCompile Include="iot_basic.c" />
     <ClCompile Include="bas_script.c" />
     <ClCompile Include="bas_comm.c" />
     <ClCompile Include="dictionary.c" />

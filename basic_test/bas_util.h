@@ -1,5 +1,6 @@
-#ifndef __BAS_PACKET_H__
-#define __BAS_PACKET_H__
+#ifndef __BAS_UTIL_H__
+#define __BAS_UTIL_H__
+
 
 //	コマンドフォーマット
 //	[送元],[宛先],[CMD]:[ADDR],([PRM1],[PRM2])[\n]
@@ -113,6 +114,7 @@ extern BASIC_STATE state;
 extern void bas_send_message(char* from, char* to, char cmd, char* message);
 extern bool bas_parse_parameter(BAS_PACKET* packet, char* msg, char separator);
 extern bool bas_comm_parse(BAS_PACKET* packet, char* msg);
+extern bool bas_check_label(char* label, char* msg);
+extern int bas_search_label(char* label, bool* is_label);
 
-#endif//__BAS_PACKET_H__
-
+#endif//__BAS_UTIL_H__

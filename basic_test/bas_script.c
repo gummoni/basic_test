@@ -1,7 +1,6 @@
 #include "config.h"
-#include "csv_basic.h"
+#include "iot_basic.h"
 #include "bas_script.h"
-#include "bas_packet.h"
 #include "dictionary.h"
 #include "rpn.h"
 #include "gosub_heap.h"
@@ -13,46 +12,9 @@ static char recv_buf[PROGRAM_LINE_COUNT];
 //=============================================================================
 //script decoder
 //=============================================================================
-
-//ラベル照合
-static bool bas_check_label(char* label, char* msg)
+void bas_script_init(void)
 {
-	while (true)
-	{
-		char a = *(label++);
-		char b = *(msg++);
-		if (a == '\0') return true;
-		if (a != b) return false;
-	}
-}
-
-//ラベル位置取得（行番号も含む）
-static int bas_search_label(char* label, bool* is_label)
-{
-	int idx;
-	char ch = label[0];
-
-	if ('0' <= ch && ch <= '9')
-	{
-		//数字
-		*is_label = false;
-		return strtol(label, NULL, 0);
-	}
-	if ('*' == ch)
-	{
-		//ジャンプ先
-		for (idx = 0; idx < PROGRAM_LINE_MAX; idx++)
-		{
-			if (bas_check_label(label, &program_areas[idx]))
-			{
-				*is_label = true;
-				return idx;
-			}
-		}
-	}
-	//該当なし
-	state.err_code = err_jump;
-	return 0;
+	dic_clear();
 }
 
 //IF文

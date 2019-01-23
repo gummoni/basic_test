@@ -1,11 +1,12 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-#include "ctype.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "stdbool.h"
-#include "string.h"
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+#include "bas_util.h"
 
 
 //dictionary

@@ -2,9 +2,8 @@
 //パケット解析
 //=============================================================================
 #include "config.h"
-#include "csv_basic.h"
+#include "iot_basic.h"
 #include "bas_comm.h"
-#include "bas_packet.h"
 #include "rpn.h"
 
 //スクリプト読込み
