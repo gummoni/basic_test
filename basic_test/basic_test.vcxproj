@@ -151,7 +151,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="hardware_notify.h" />
+    <ClInclude Include="bas.h" />
+    <ClInclude Include="bas_property.h" />
+    <ClInclude Include="serial.h" />
+    <ClInclude Include="usb.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="bas_script.h" />
@@ -162,9 +165,12 @@
     <ClInclude Include="rpn.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="bas.c" />
     <ClCompile Include="heap.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="hardware_notify.c" />
+    <ClCompile Include="bas_property.c" />
+    <ClCompile Include="serial.c" />
+    <ClCompile Include="usb.c" />
     <ClCompile Include="util.c" />
     <ClCompile Include="bas_script.c" />
     <ClCompile Include="bas_comm.c" />

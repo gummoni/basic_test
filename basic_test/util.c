@@ -1,30 +1,11 @@
 #include "config.h"
+#include "util.h"
 
 //送信バッファ
 static char send_buf[PROGRAM_LINE_COUNT];
 
-//BAS翻訳機の状態
-BASIC_STATE state;
-
-//24文字x100行のプログラムエリア
-char program_areas[PROGRAM_LINE_MAX][PROGRAM_LINE_COUNT] =
-{
-	//リッスン
-	"AXIS_Z1",			//  0: UNIQUE_NAME（自分宛、返事を返す）
-	"AXIS_Z",			//  1: LISTEN1(NOTIFY)
-	"",				    //  2: LISTEN2(NOTIFY)
-	"",				    //  3: LISTEN3(NOTIFY)
-	"",					//  4: LISTEN4(NOTIFY)
-	"",					//  5: LISTEN5(NOTIFY)
-	"",					//  6: LISTEN6(NOTIFY)
-	"",					//  7: LISTEN7(NOTIFY)
-	"",					//  8: LISTEN8(NOTIFY)
-	"",					//  9: LISTEN9(NOTIFY)
-						// 10:プログラム領域以降すべて
-};
-
 //返信電文作成
-void send_message(char* from, char* to, char cmd, char* message)
+char* make_message(char* from, char* to, char cmd, char* message)
 {
 	//電文例：SENDER,RECIEVER,1:PARAMETER...\n	
 	char* msg = send_buf;
@@ -37,15 +18,17 @@ void send_message(char* from, char* to, char cmd, char* message)
 	while ('\0' != *message) *(msg++) = *(message++);
 	*(msg++) = '\n';
 	*(msg++) = '\0';
-	printf(send_buf);
+
+	return send_buf;
 }
 
 //パラメータ解析
 bool parse_parameter(BAS_PACKET* packet, char* msg, char separator)
 {
-	packet->opcode = msg;
-	packet->prm1 = packet->prm2 = packet->prm3 = packet->prm4 = packet->prm5 = NULL;
+	packet->prm1 = msg;
+	packet->prm2 = packet->prm3 = packet->prm4 = packet->prm5 = packet->prm6 = NULL;
 	char** prms = &packet->prm1;
+
 	bool qout = false;
 	for (;; msg++)
 	{
@@ -97,7 +80,7 @@ int label_search(char* label, bool* is_label)
 		//ジャンプ先
 		for (idx = 0; idx < PROGRAM_LINE_MAX; idx++)
 		{
-			if (label_compare(label, &program_areas[idx]))
+			if (label_compare(label, &program_areas[idx][0]))
 			{
 				*is_label = true;
 				return idx;
@@ -110,7 +93,7 @@ int label_search(char* label, bool* is_label)
 }
 
 //宛先確認（トピックID取得）
-bool get_topic_id(char* topic, int* result)
+bool get_listen_id(char* topic, int* result)
 {
 	int i;
 	for (i = 0; i < 10; i++)
@@ -126,3 +109,20 @@ bool get_topic_id(char* topic, int* result)
 	return false;
 }
 
+//パケットクリア
+void clear_packet(BAS_PACKET* packet)
+{
+	packet->recv_length = 0;
+	packet->state = 0;
+	packet->is_quot = false;
+	packet->sender = packet->recv_buff;
+	packet->reciever = NULL;
+	packet->command = '\0';
+	packet->prm1 = NULL;
+	packet->prm2 = NULL;
+	packet->prm3 = NULL;
+	packet->prm4 = NULL;
+	packet->prm5 = NULL;
+	packet->prm6 = NULL;
+	packet->response = NULL;
+}

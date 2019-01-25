@@ -1,6 +1,6 @@
 //ハードウェア変化通知処理
 #include "config.h"
-#include "hardware_notify.h"
+#include "bas_property.h"
 
 
 static char* notify_queue[10];
@@ -33,7 +33,7 @@ static char hw_buff[PROGRAM_LINE_COUNT];
 
 
 //通知処理(変化があれば通知)
-void notify_job(void)
+void bas_property_job(BAS_PACKET* packet)
 {
 	/*
 	ushort _ad_val;
@@ -58,17 +58,17 @@ void notify_job(void)
 	if (change_refl)
 	{
 		sprintf(hw_buff, "%s.REFL=%d", SELF_NAME, refl);
-		send_message(SELF_NAME, SELF_NAME, NOTIFY, hw_buff);
+		make_message(SELF_NAME, SELF_NAME, NOTIFY, hw_buff);
 	}
 	if (change_refr)
 	{
 		sprintf(hw_buff, "%s.REFR=%d", SELF_NAME, refr);
-		send_message(SELF_NAME, SELF_NAME, NOTIFY, hw_buff);
+		make_message(SELF_NAME, SELF_NAME, NOTIFY, hw_buff);
 	}
 	if (change_moving)
 	{
 		sprintf(hw_buff, "%s.MOVING=%d", SELF_NAME, moving);
-		send_message(SELF_NAME, SELF_NAME, NOTIFY, hw_buff);
+		make_message(SELF_NAME, SELF_NAME, NOTIFY, hw_buff);
 	}
 	*/
 }

@@ -74,8 +74,8 @@ typedef struct
 } rpn_info;
 
 
-extern bool rpn_execute(BAS_PACKET_BODY* context);
-extern bool rpn_judge(BAS_PACKET_BODY* context);
+extern bool rpn_execute(BAS_PACKET* packet);
+extern bool rpn_judge(BAS_PACKET* packet);
 extern char* rpn_get_value(char* key);
 
 #endif//__RPN_H__

@@ -486,10 +486,10 @@ static bool rpn_str(rpn_instance* self)
 }
 
 //条件式
-bool rpn_judge(BAS_PACKET_BODY* body)
+bool rpn_judge(BAS_PACKET* packet)
 {
 	rpn_instance self;
-	self.rp = body->opcode;
+	self.rp = packet->prm1;
 
 	//左辺取り込み
 	if (!reader_next(&self))  return false;
@@ -544,11 +544,11 @@ bool rpn_judge(BAS_PACKET_BODY* body)
 }
 
 //スクリプト解析（上位）
-bool rpn_execute(BAS_PACKET_BODY* body)
+bool rpn_execute(BAS_PACKET* packet)
 {
 	rpn_instance self;
-	self.rp = body->opcode;
-	self.result = &body->response;
+	self.rp = packet->prm1;
+	self.result = &packet->response;
 
 	if (reader_next(&self))
 	{

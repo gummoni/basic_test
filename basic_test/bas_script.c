@@ -8,20 +8,14 @@
 #include "heap.h"
 
 //受信バッファ
-static char recv_buf[PROGRAM_LINE_COUNT];
+static BAS_PACKET script_packet;
 
-
-void bas_script_init(void)
-{
-	dic_clear();
-	state.run_no = state.err_no = 0;
-}
 
 //IF文
 static void bas_script_if(BAS_PACKET* packet)
 {
 	bool is_label;
-	if (rpn_judge((BAS_PACKET_BODY*)&packet->prm1))
+	if (rpn_judge(packet))
 	{
 		//TRUE
 		state.run_no = label_search(packet->prm2, &is_label);
@@ -103,7 +97,10 @@ static void bas_script_invoke(BAS_PACKET* packet)
 	char* key = packet->prm2;
 	char* val = rpn_get_value(key);
 	sprintf(resp, "%s.%s=%s", SELF_NAME, key, val);
-	send_message(SELF_NAME, to, INVOKE, resp);
+	char* response_message = make_message(SELF_NAME, to, INVOKE, resp);
+	int length = strlen(response_message);
+	packet->response(response_message, length);
+	packet->broadcast(response_message, length);
 }
 
 //遅延処理
@@ -179,7 +176,7 @@ static void bas_script_execute(BAS_PACKET* packet)
 	for (i = 0; i < SCRIPT_COMMAND_TABLE_LENGTH; i++)
 	{
 		BAS_SCRIPT_TABLE command = script_command_table[i];
-		if (0 == strcmp(packet->opcode, command.name))
+		if (0 == strcmp(packet->prm1, command.name))
 		{
 			command.execute(packet);
 			return;
@@ -187,24 +184,22 @@ static void bas_script_execute(BAS_PACKET* packet)
 	}
 
 	//RPN実行
-	rpn_execute((BAS_PACKET_BODY*)&packet->opcode);
+	rpn_execute(packet);
 }
 
 //スクリプト実行処理
 void bas_script_job(void)
 {
-	BAS_PACKET packet;
-
 	while (true)
 	{
-		if ((0 != state.err_no) || (0 == state.run_no)) return;
+		if ((0 != state.err_no) || (10 > state.run_no)) return;
+
+		strcpy(script_packet.recv_buff, program_areas[state.run_no++]);
+
 		//プログラム番地のコードをCSV分解して実行
-		packet.reciever = packet.sender = SELF_NAME;
-		packet.response = NULL;
-		strcpy(recv_buf, program_areas[state.run_no++]);
-		if (!parse_parameter(&packet, recv_buf, ' ')) return;
-		if ('*' == packet.opcode[0]) continue;
-		bas_script_execute(&packet);
+		if (!parse_parameter(&script_packet, program_areas[state.run_no++], ' ')) return;
+		if ('*' == script_packet.prm1[0]) continue;
+		bas_script_execute(&script_packet);
 		return;
 	}
 }
