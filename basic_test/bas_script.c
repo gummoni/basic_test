@@ -14,14 +14,14 @@ static char recv_buf[PROGRAM_LINE_COUNT];
 void bas_script_init(void)
 {
 	dic_clear();
-	state.run_no = state.err_code = 0;
+	state.run_no = state.err_no = 0;
 }
 
 //IF文
 static void bas_script_if(BAS_PACKET* packet)
 {
 	bool is_label;
-	if (rpn_judge(&packet->prm1))
+	if (rpn_judge(packet->prm1))
 	{
 		//TRUE
 		state.run_no = label_search(packet->prm2, &is_label);
@@ -61,9 +61,13 @@ static void bas_script_goto(BAS_PACKET* packet)
 			if (NULL == packet->prm3) return;
 			dic_set(parse.prm2, packet->prm3);
 
-			if (NULL == parse.prm2) return;
-			if (NULL == packet->prm3) return;
-			dic_set(parse.prm2, packet->prm3);
+			if (NULL == parse.prm3) return;
+			if (NULL == packet->prm4) return;
+			dic_set(parse.prm3, packet->prm4);
+
+			if (NULL == parse.prm4) return;
+			if (NULL == packet->prm5) return;
+			dic_set(parse.prm4, packet->prm5);
 		}
 	}
 }
@@ -77,7 +81,7 @@ static void bas_script_gosub(BAS_PACKET* packet)
 	}
 	else
 	{
-		state.err_code = err_out_of_return;
+		state.err_no = err_out_of_return;
 	}
 }
 
@@ -86,29 +90,32 @@ static void bas_script_return(BAS_PACKET* packet)
 {
 	if (!heap_dequeue(&state.run_no))
 	{
-		state.err_code = err_invalid_return;
+		//戻り先がないのでEND扱い
+		state.run_no = state.stp_no = 0;
 	}
 }
 
-//END文
-static void bas_script_end(BAS_PACKET* packet)
-{
-	state.run_no = 0;
-}
-
 //メッセージ通知
-static void bas_script_notify(BAS_PACKET* packet)
+static void bas_script_invoke(BAS_PACKET* packet)
 {
 	char resp[32];
 	char* to = packet->prm1;
 	char* key = packet->prm2;
 	char* val = rpn_get_value(key);
 	sprintf(resp, "%s.%s=%s", SELF_NAME, key, val);
-	send_message(SELF_NAME, to, NOTIFY, resp);
+	send_message(SELF_NAME, to, INVOKE, resp);
 }
 
-//速度設定
-static void bas_script_speed(BAS_PACKET* packet)
+//遅延処理
+static void bas_script_delay(BAS_PACKET* packet)
+{
+	//TODO
+}
+
+//------------------------------拡張ここから------------------------------
+
+//原点復帰
+static void bas_script_org(BAS_PACKET* packet)
 {
 	//TODO
 }
@@ -125,12 +132,6 @@ static void bas_script_inc(BAS_PACKET* packet)
 	//TODO
 }
 
-//原点復帰
-static void bas_script_org(BAS_PACKET* packet)
-{
-	//TODO
-}
-
 //モータ停止
 static void bas_script_stop(BAS_PACKET* packet)
 {
@@ -143,19 +144,15 @@ static void bas_script_check(BAS_PACKET* packet)
 	//TODO
 }
 
-//待ち処理
-static void bas_script_loop(BAS_PACKET* packet)
+//エラー通知処理
+static void bas_script_err(BAS_PACKET* packet)
 {
 	//TODO
 }
 
-//遅延処理
-static void bas_script_delay(BAS_PACKET* packet)
-{
-	//TODO
-}
+//------------------------------拡張ここまで------------------------------
 
-#define SCRIPT_COMMAND_TABLE_LENGTH	14
+#define SCRIPT_COMMAND_TABLE_LENGTH	12
 static BAS_SCRIPT_TABLE script_command_table[SCRIPT_COMMAND_TABLE_LENGTH] =
 {
 	//---基本命令---
@@ -163,17 +160,15 @@ static BAS_SCRIPT_TABLE script_command_table[SCRIPT_COMMAND_TABLE_LENGTH] =
 	{ "GOTO"	, bas_script_goto		},	//1
 	{ "GOSUB"	, bas_script_gosub		},	//2
 	{ "RETURN"	, bas_script_return		},	//3
-	{ "END"		, bas_script_end		},	//4
-	{ "NOTIFY"	, bas_script_notify		},	//5
+	{ "INVOKE"	, bas_script_invoke		},	//4
+	{ "DELAY"	, bas_script_delay		},	//5
+	{ "CHK"		, bas_script_check		},	//6
+	{ "ERR"		, bas_script_err		},	//7
 	//----拡張命令（PB210）---
-	{ "SPEED"	, bas_script_speed		},	//6
-	{ "ABS"		, bas_script_abs		},	//7
-	{ "INC"		, bas_script_inc		},	//8
-	{ "ORG"		, bas_script_org		},	//9
-	{ "STOP"	, bas_script_stop		},	//10
-	{ "CHECK"	, bas_script_check		},	//11
-	{ "LOOP"	, bas_script_loop		},	//12
-	{ "DELAY"	, bas_script_delay		},	//13
+	{ "ORG"		, bas_script_org		},	//8
+	{ "ABS"		, bas_script_abs		},	//9
+	{ "INC"		, bas_script_inc		},	//10
+	{ "STOP"	, bas_script_stop		},	//11
 };
 
 //コマンド実行
@@ -202,7 +197,7 @@ void bas_script_job(void)
 
 	while (true)
 	{
-		if ((0 != state.err_code) || (0 == state.run_no)) return;
+		if ((0 != state.err_no) || (0 == state.run_no)) return;
 		//プログラム番地のコードをCSV分解して実行
 		packet.reciever = packet.sender = SELF_NAME;
 		packet.response = NULL;

@@ -31,8 +31,8 @@ typedef enum
 	ERR_CLEAR_ACK = 'c',
 
 	//コマンド送信	C$="100" というパラメータを送れば基板の中で実行する。、変化通知もこのコマンド
-	NOTIFY = 'N',
-	NOTIFY_ACK = 'n',
+	INVOKE = 'I',
+	INVOKE_ACK = 'i',
 
 	//ステータス取得
 	STATUS = 'Z',
@@ -48,11 +48,11 @@ typedef enum
 
 } COMMAND;
 
-//エラーコード
+//エラーコード(＋ステータスコード)
 typedef enum
 {
-	err_none,				//エラー無し
-	err_invalid_return,		//リターン先が存在しない
+	err_none = 0,			//エラー無し
+	err_busy = 1,			//動作中
 	err_out_of_return,		//ヒープ領域オーバー
 	err_jump,				//ジャンプ失敗
 } error_code;
@@ -60,9 +60,10 @@ typedef enum
 //動作状態
 typedef struct
 {
-	int run_no;
-	error_code err_code;
-	int delay_count;
+	int run_no;				//実行行数
+	error_code err_no;		//エラー番号
+	int stp_no;				//内部ステップ番号
+	int timer_count;		//タイマーカウント
 } BASIC_STATE;
 
 //パケット構造体
@@ -77,6 +78,7 @@ typedef struct
 	char* prm2;		//リードポインタ2
 	char* prm3;		//リードポインタ3
 	char* prm4;		//リードポインタ4
+	char* prm5;		//リードポインタ5
 	char* response;	//返信用メッセージポインタ
 } BAS_PACKET;
 
@@ -87,6 +89,7 @@ typedef struct
 	char* prm2;		//リードポインタ2
 	char* prm3;		//リードポインタ3
 	char* prm4;		//リードポインタ4
+	char* prm5;		//リードポインタ5
 	char* response;	//返信用メッセージポインタ
 } BAS_PACKET_BODY;
 

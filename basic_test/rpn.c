@@ -13,15 +13,15 @@ static inline void seek(int offset)
 }
 
 //1文字読込み
-static inline char get_char(void) 
+static inline char get_char(void)
 {
-  char ch = *self.rp;
-  if ('\0' == ch)
-  {
-	  return '\0';
-  }
-  self.rp++;
-  return ch;
+	char ch = *self.rp;
+	if ('\0' == ch)
+	{
+		return '\0';
+	}
+	self.rp++;
+	return ch;
 }
 
 //空白行スキップ
@@ -104,7 +104,7 @@ static inline void parse_val(char ch)
 	int idx = 0;
 	self.context[idx++] = ch;
 
-	while (true) 
+	while (true)
 	{
 		ch = get_char();
 		if ('A' <= ch && ch <= 'Z' || '0' <= ch && ch <= '9' || '_' == ch || '.' == ch)
@@ -112,14 +112,14 @@ static inline void parse_val(char ch)
 			//変数名
 			self.context[idx++] = ch;
 		}
-		else if ('%' == ch) 
+		else if ('%' == ch)
 		{
 			//数字：終端
 			self.token = SYN_NUM;
 			self.context[idx] = '\0';
 			break;
 		}
-		else if ('$' == ch) 
+		else if ('$' == ch)
 		{
 			//文字列：終端
 			self.token = SYN_STR;
@@ -196,17 +196,17 @@ static inline void parse_div(void)
 //記号解析
 static inline void parse_equ(void)
 {
-  char ch = get_char();
-  if ('=' == ch)
-  {
-	  self.token = OPE_EQ;
-  } 
-  else 
-  {
-	*self.rp--;
-	self.token = CALC_EQUAL;
-  }
-  self.context[0] = '\0';
+	char ch = get_char();
+	if ('=' == ch)
+	{
+		self.token = OPE_EQ;
+	}
+	else
+	{
+		*self.rp--;
+		self.token = CALC_EQUAL;
+	}
+	self.context[0] = '\0';
 }
 
 //記号解析

@@ -30,7 +30,7 @@ static bool bas_comm_start(BAS_PACKET_BODY* context)
 {
 	char* addr = context->opcode;
 	int run_no = strtol(addr, NULL, 0);
-	if (0 != state.err_code) return false;
+	if (0 != state.err_no) return false;
 	if (0 != state.run_no) return false;
 	state.run_no = run_no;
 	return true;
@@ -39,7 +39,7 @@ static bool bas_comm_start(BAS_PACKET_BODY* context)
 //中断
 static bool bas_comm_abort(BAS_PACKET_BODY* context)
 {
-	if (0 != state.err_code) return false;
+	if (0 != state.err_no) return false;
 	state.run_no = 0;
 	return true;
 }
@@ -47,7 +47,7 @@ static bool bas_comm_abort(BAS_PACKET_BODY* context)
 //エラークリア
 static bool bas_comm_errclear(BAS_PACKET_BODY* context)
 {
-	state.err_code = state.run_no = 0;
+	state.err_no = state.run_no = state.stp_no = 0;
 	return true;
 }
 
@@ -80,7 +80,7 @@ static BAS_COMM_TABLE packet_command_table[PACKET_BAS_COMMAND_TABLE] =
 	{ START		, bas_comm_start		},		// 開始コマンド（戻り値：なし）
 	{ ABORT		, bas_comm_abort		},		// 中断コマンド（戻り値：なし）
 	{ ERR_CLEAR	, bas_comm_errclear		},		// エラー解除（戻り値：なし）
-	{ NOTIFY	, rpn_execute			},		// 計算コマンド（戻り値：値）
+	{ INVOKE	, rpn_execute			},		// 計算コマンド（戻り値：値）
 	{ STATUS	, bas_comm_status       },		// ステータス取得
 	{ LOAD		, bas_comm_load			},		// ファーム読込み
 	{ SAVE		, bas_comm_save			},		// ファーム保存
@@ -212,7 +212,7 @@ void bas_comm_job(char* recv_message)
 				if (STATUS == packet.command)
 				{
 					//ステータス返送
-					sprintf(result, "OK,%d,%d", state.run_no, state.err_code);
+					sprintf(result, "OK,%d,%d", state.run_no, state.err_no);
 				}
 				else if (NULL == packet.response)
 				{
@@ -228,7 +228,7 @@ void bas_comm_job(char* recv_message)
 			else
 			{
 				//エラー応答
-				sprintf(result, "NG,%d,%d", state.run_no, state.err_code);
+				sprintf(result, "NG,%d,%d", state.run_no, state.err_no);
 			}
 			//返信
 			send_message(SELF_NAME, packet.sender, packet.command | 0x20, result);

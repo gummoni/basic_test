@@ -2,6 +2,7 @@
 #define __RPN_H__
 
 typedef enum {
+	TOKEN_NONE = 0x00000000,
 	// 0  : enter
 	CUR_NEWLINE = 0x00000001,
 	// 1  : numeric[0-9]

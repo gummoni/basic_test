@@ -44,12 +44,17 @@ void send_message(char* from, char* to, char cmd, char* message)
 bool parse_parameter(BAS_PACKET* packet, char* msg, char separator)
 {
 	packet->opcode = msg;
-	packet->prm1 = packet->prm2 = packet->prm3 = packet->prm4 = NULL;
+	packet->prm1 = packet->prm2 = packet->prm3 = packet->prm4 = packet->prm5 = NULL;
 	char** prms = &packet->prm1;
+	bool qout = false;
 	for (;; msg++)
 	{
 		char ch = *msg;
-		if (separator == ch)
+		if ('"' == ch)
+		{
+			qout ^= true;
+		}
+		if ((separator == ch) && !qout)
 		{
 			*(msg++) = '\0';
 			*(prms++) = msg;
@@ -100,7 +105,7 @@ int label_search(char* label, bool* is_label)
 		}
 	}
 	//ŠY“–‚È‚µ
-	state.err_code = err_jump;
+	state.err_no = err_jump;
 	return 0;
 }
 
