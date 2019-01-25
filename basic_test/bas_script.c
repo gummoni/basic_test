@@ -21,7 +21,7 @@ void bas_script_init(void)
 static void bas_script_if(BAS_PACKET* packet)
 {
 	bool is_label;
-	if (rpn_judge(packet->prm1))
+	if (rpn_judge((BAS_PACKET_BODY*)&packet->prm1))
 	{
 		//TRUE
 		state.run_no = label_search(packet->prm2, &is_label);

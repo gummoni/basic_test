@@ -2,74 +2,73 @@
 #include "dic.h"
 #include "rpn.h"
 
-static rpn_instance self;
-static bool rpn_num(int* result);
+static bool rpn_num(rpn_instance* self, int* result);
 
 
 //読込みポインタ移動（相対値）
-static inline void seek(int offset)
+static inline void seek(rpn_instance* self, int offset)
 {
-	if ('\0' != *self.rp) self.rp += offset;
+	if ('\0' != *self->rp) self->rp += offset;
 }
 
 //1文字読込み
-static inline char get_char(void)
+static inline char get_char(rpn_instance* self)
 {
-	char ch = *self.rp;
+	char ch = *self->rp;
 	if ('\0' == ch)
 	{
 		return '\0';
 	}
-	self.rp++;
+	self->rp++;
 	return ch;
 }
 
 //空白行スキップ
-static inline void skip_space(void)
+static inline void skip_space(rpn_instance* self)
 {
-	while ((' ' == *self.rp) || ('\t' == *self.rp)) self.rp++;
+	while ((' ' == *self->rp) || ('\t' == *self->rp)) self->rp++;
 }
 
 //（
-static inline void parse_gt(void)
+static inline void parse_gt(rpn_instance* self)
 {
-	self.token = PRI_GT;
-	self.context[0] = '\0';
+	self->token = PRI_GT;
+	self->context[0] = '\0';
 }
 
 //）
-static inline void parse_ge(void)
+static inline void parse_ge(rpn_instance* self)
 {
-	self.token = PRI_GE;
-	self.context[0] = '\0';
+	self->token = PRI_GE;
+	self->context[0] = '\0';
 }
 
 //改行[\r, \,\n, \r\n]処理
-static inline void parse_newline(void)
+static inline void parse_newline(rpn_instance* self)
 {
-	if ('\n' == self.rp[1]) self.rp++;
-	self.token = CUR_NEWLINE;
-	self.context[0] = '\0';
+	if ('\n' == self->rp[1]) self->rp++;
+	self->token = CUR_NEWLINE;
+	self->context[0] = '\0';
 }
 
 //数字取得(0x00, 012345)
-static inline void parse_num(char ch)
+static inline void parse_num(rpn_instance* self, char ch)
 {
 	int idx = 0;
-	self.token = VAR_NUM;
+	self->token = VAR_NUM;
 
-	if ('X' == toupper(*self.rp))
+	if ('X' == toupper(*self->rp))
 	{
 		//16進数
-		self.context[idx++] = '0';
-		self.context[idx++] = 'x';
+		self->context[idx++] = '0';
+		self->context[idx++] = 'x';
 		while (true)
 		{
-			self.rp++;
-			ch = toupper(*self.rp);
+			self->rp++;
+			ch = toupper(*self->rp);
 			if (('0' <= ch && ch <= '9') || ('A' <= ch && ch <= 'F'))
 			{
-				self.context[idx++] = ch;
+				self->context[idx++] = ch;
 			}
 			else
 			{
@@ -80,14 +79,14 @@ static inline void parse_num(char ch)
 	else
 	{
 		//10進数
-		self.context[idx++] = ch;
+		self->context[idx++] = ch;
 		while (true)
 		{
-			ch = *self.rp;
+			ch = *self->rp;
 			if ('0' <= ch && ch <= '9')
 			{
-				self.context[idx++] = ch;
-				*self.rp++;
+				self->context[idx++] = ch;
+				*self->rp++;
 			}
 			else
 			{
@@ -95,61 +94,61 @@ static inline void parse_num(char ch)
 			}
 		}
 	}
-	self.context[idx] = '\0';
+	self->context[idx] = '\0';
 }
 
 //文字型変数・数字型変数どちらかを調べる
-static inline void parse_val(char ch)
+static inline void parse_val(rpn_instance* self, char ch)
 {
 	int idx = 0;
-	self.context[idx++] = ch;
+	self->context[idx++] = ch;
 
 	while (true)
 	{
-		ch = get_char();
+		ch = get_char(self);
 		if ('A' <= ch && ch <= 'Z' || '0' <= ch && ch <= '9' || '_' == ch || '.' == ch)
 		{
 			//変数名
-			self.context[idx++] = ch;
+			self->context[idx++] = ch;
 		}
 		else if ('%' == ch)
 		{
 			//数字：終端
-			self.token = SYN_NUM;
-			self.context[idx] = '\0';
+			self->token = SYN_NUM;
+			self->context[idx] = '\0';
 			break;
 		}
 		else if ('$' == ch)
 		{
 			//文字列：終端
-			self.token = SYN_STR;
-			self.context[idx] = '\0';
+			self->token = SYN_STR;
+			self->context[idx] = '\0';
 			break;
 		}
 		else
 		{
 			//不明な文字：終端
-			seek(-1);
-			self.token = SYN_NUM;
-			self.context[idx] = '\0';
+			seek(self, -1);
+			self->token = SYN_NUM;
+			self->context[idx] = '\0';
 			break;
 		}
 	}
 }
 
 //文字列解析
-static inline void parse_str(void)
+static inline void parse_str(rpn_instance* self)
 {
 	int idx = 0;
 
-	self.token = VAR_STR;
+	self->token = VAR_STR;
 	while (true)
 	{
-		char ch = get_char();
+		char ch = get_char(self);
 		if ('\\' == ch)
 		{
 			//特殊文字
-			ch = get_char();
+			ch = get_char(self);
 			if ('\t' == ch) ch = '\t';
 			else if ('\r' == ch) ch = '\r';
 			else if ('\n' == ch) ch = '\n';
@@ -160,111 +159,111 @@ static inline void parse_str(void)
 			//終端
 			break;
 		}
-		self.context[idx++] = ch;
+		self->context[idx++] = ch;
 	}
-	self.context[idx] = '\0';
+	self->context[idx] = '\0';
 }
 
 //記号解析
-static inline void parse_plus(void)
+static inline void parse_plus(rpn_instance* self)
 {
-	self.token = CALC_PLUS;
-	self.context[0] = '\0';
+	self->token = CALC_PLUS;
+	self->context[0] = '\0';
 }
 
 //記号解析
-static inline void parse_minus(void)
+static inline void parse_minus(rpn_instance* self)
 {
-	self.token = CALC_MINUS;
-	self.context[0] = '\0';
+	self->token = CALC_MINUS;
+	self->context[0] = '\0';
 }
 
 //記号解析
-static inline void parse_mul(void)
+static inline void parse_mul(rpn_instance* self)
 {
-	self.token = CALC_MUL;
-	self.context[0] = '\0';
+	self->token = CALC_MUL;
+	self->context[0] = '\0';
 }
 
 //記号解析
-static inline void parse_div(void)
+static inline void parse_div(rpn_instance* self)
 {
-	self.token = CALC_DIV;
-	self.context[0] = '\0';
+	self->token = CALC_DIV;
+	self->context[0] = '\0';
 }
 
 //記号解析
-static inline void parse_equ(void)
+static inline void parse_equ(rpn_instance* self)
 {
-	char ch = get_char();
+	char ch = get_char(self);
 	if ('=' == ch)
 	{
-		self.token = OPE_EQ;
+		self->token = OPE_EQ;
 	}
 	else
 	{
-		*self.rp--;
-		self.token = CALC_EQUAL;
+		*self->rp--;
+		self->token = CALC_EQUAL;
 	}
-	self.context[0] = '\0';
+	self->context[0] = '\0';
 }
 
 //記号解析
-static inline void parse_ge_ne_gt(void)
+static inline void parse_ge_ne_gt(rpn_instance* self)
 {
-	char ch = get_char();
+	char ch = get_char(self);
 	if ('=' == ch)
 	{
-		self.token = OPE_GE;
+		self->token = OPE_GE;
 	}
 	else if ('>' == ch)
 	{
-		self.token = OPE_NE;
+		self->token = OPE_NE;
 	}
 	else
 	{
-		seek(-1);
-		self.token = OPE_GT;
+		seek(self, -1);
+		self->token = OPE_GT;
 	}
 }
 
 //符号解析
-static inline void parse_le_ne_lt(void)
+static inline void parse_le_ne_lt(rpn_instance* self)
 {
-	char ch = get_char();
+	char ch = get_char(self);
 	if ('=' == ch)
 	{
-		self.token = OPE_LE;
+		self->token = OPE_LE;
 	}
 	else if ('<' == ch)
 	{
-		self.token = OPE_NE;
+		self->token = OPE_NE;
 	}
 	else
 	{
-		seek(-1);
-		self.token = OPE_LT;
+		seek(self, -1);
+		self->token = OPE_LT;
 	}
 }
 
 //次のトークンを取得する
-static bool reader_next(void)
+static bool reader_next(rpn_instance* self)
 {
-	skip_space();
-	char ch = toupper(get_char());
-	if ('(' == ch) parse_gt();
-	else if (')' == ch) parse_ge();
-	else if ('\r' == ch || '\n' == ch) parse_newline();
-	else if ('0' <= ch && ch <= '9') parse_num(ch);
-	else if ('A' <= ch && ch <= 'Z' || '_' == ch || '.' == ch) parse_val(ch);
-	else if ('"' == ch) parse_str();
-	else if ('+' == ch) parse_plus();
-	else if ('-' == ch) parse_minus();
-	else if ('*' == ch) parse_mul();
-	else if ('/' == ch) parse_div();
-	else if ('=' == ch) parse_equ();
-	else if ('<' == ch) parse_ge_ne_gt();
-	else if ('>' == ch) parse_le_ne_lt();
+	skip_space(self);
+	char ch = toupper(get_char(self));
+	if ('(' == ch) parse_gt(self);
+	else if (')' == ch) parse_ge(self);
+	else if ('\r' == ch || '\n' == ch) parse_newline(self);
+	else if ('0' <= ch && ch <= '9') parse_num(self, ch);
+	else if ('A' <= ch && ch <= 'Z' || '_' == ch || '.' == ch) parse_val(self, ch);
+	else if ('"' == ch) parse_str(self);
+	else if ('+' == ch) parse_plus(self);
+	else if ('-' == ch) parse_minus(self);
+	else if ('*' == ch) parse_mul(self);
+	else if ('/' == ch) parse_div(self);
+	else if ('=' == ch) parse_equ(self);
+	else if ('<' == ch) parse_ge_ne_gt(self);
+	else if ('>' == ch) parse_le_ne_lt(self);
 	else return false;
 	return true;
 }
@@ -279,9 +278,9 @@ static inline int convert_value(rpn_token token, char* value)
 }
 
 //逆ポーランド記法デコード
-static void rpn_decode(rpn_info* info)
+static void rpn_decode(rpn_instance* self, rpn_info* info)
 {
-	rpn_token token = self.token;
+	rpn_token token = self->token;
 
 	switch (info->state)
 	{
@@ -294,7 +293,7 @@ static void rpn_decode(rpn_info* info)
 		}
 		else
 		{
-			info->left = convert_value(token, self.context);
+			info->left = convert_value(token, self->context);
 			info->state = 1;
 		}
 		break;
@@ -307,17 +306,17 @@ static void rpn_decode(rpn_info* info)
 	case 2:
 		if (CALC_MUL == info->old_op)
 		{
-			info->left = info->left * convert_value(token, self.context);
+			info->left = info->left * convert_value(token, self->context);
 			info->state = 1;
 		}
 		else if (CALC_DIV == info->old_op)
 		{
-			info->left = info->left / convert_value(token, self.context);
+			info->left = info->left / convert_value(token, self->context);
 			info->state = 1;
 		}
 		else
 		{
-			info->right = convert_value(token, self.context);
+			info->right = convert_value(token, self->context);
 			info->state = 3;
 		}
 		break;
@@ -330,22 +329,22 @@ static void rpn_decode(rpn_info* info)
 	case 4:
 		if (CALC_MUL == info->cur_op)
 		{
-			info->right = info->right * convert_value(token, self.context);
+			info->right = info->right * convert_value(token, self->context);
 		}
 		else if (CALC_DIV == info->old_op)
 		{
-			info->right = info->right / convert_value(token, self.context);
+			info->right = info->right / convert_value(token, self->context);
 		}
 		else if (CALC_PLUS == info->old_op)
 		{
 			info->left = info->left + info->right;
-			info->right = convert_value(token, self.context);
+			info->right = convert_value(token, self->context);
 			info->old_op = info->cur_op;
 		}
 		else if (CALC_MINUS == info->old_op)
 		{
 			info->left = info->left - info->right;
-			info->right = convert_value(token, self.context);
+			info->right = convert_value(token, self->context);
 			info->old_op = info->cur_op;
 		}
 		info->state = 3;
@@ -367,41 +366,41 @@ static int rpn_result(rpn_info* self)
 }
 
 //数式を計算する
-static bool rpn_calc(void)
+static bool rpn_calc(rpn_instance* self)
 {
-	if (*self.rp == '=')
+	if (*self->rp == '=')
 	{
 		int result;
-		if (!rpn_num(&result)) return false;
-		itoa(result, self.tmp_value, 10);
-		*self.result = dic_set(self.tmp_key, self.tmp_value);
+		if (!rpn_num(self, &result)) return false;
+		itoa(result, self->tmp_value, 10);
+		*self->result = dic_set(self->tmp_key, self->tmp_value);
 	}
 	else
 	{
-		*self.result = dic_get(self.context);
+		*self->result = dic_get(self->context);
 	}
 	return true;
 }
 
 //式を計算する
-static bool rpn_num(int* result)
+static bool rpn_num(rpn_instance* self, int* result)
 {
 	rpn_info rpn_contexts[4];
 	rpn_info* pt_rpn = rpn_contexts;
-	strcpy(self.tmp_key, self.context);
+	strcpy(self->tmp_key, self->context);
 	pt_rpn->state = 0;
 
-	if (!reader_next()) return false;
-	if (self.token != CALC_EQUAL) return false;
+	if (!reader_next(self)) return false;
+	if (self->token != CALC_EQUAL) return false;
 
 	while (true)
 	{
-		if (!reader_next())
+		if (!reader_next(self))
 		{
 			*result = rpn_result(pt_rpn);
 			return true;
 		}
-		switch (self.token)
+		switch (self->token)
 		{
 		case VAR_STR:
 		case SYN_STR:
@@ -415,7 +414,7 @@ static bool rpn_num(int* result)
 		case CALC_MINUS:
 		case CALC_MUL:
 		case CALC_DIV:
-			rpn_decode(pt_rpn);
+			rpn_decode(self, pt_rpn);
 			break;
 
 		case CUR_NEWLINE:
@@ -429,49 +428,49 @@ static bool rpn_num(int* result)
 			break;
 
 		case PRI_GE:
-			itoa(rpn_result(pt_rpn--), self.context, 10);
-			self.token = VAR_NUM;
-			rpn_decode(pt_rpn);
+			itoa(rpn_result(pt_rpn--), self->context, 10);
+			self->token = VAR_NUM;
+			rpn_decode(self, pt_rpn);
 			break;
 		}
 	}
 }
 
 //文字列の結合
-static bool rpn_str(void)
+static bool rpn_str(rpn_instance* self)
 {
-	if (*self.rp == '=')
+	if (*self->rp == '=')
 	{
-		strcpy(self.tmp_key, self.context);
-		self.tmp_value[0] = '\0';
+		strcpy(self->tmp_key, self->context);
+		self->tmp_value[0] = '\0';
 
-		if (!reader_next()) return false;
-		if (self.token != CALC_EQUAL) return false;
+		if (!reader_next(self)) return false;
+		if (self->token != CALC_EQUAL) return false;
 
 		while (true)
 		{
-			if (!reader_next())
+			if (!reader_next(self))
 			{
-				*self.result = dic_set(self.tmp_key, self.tmp_value);
+				*self->result = dic_set(self->tmp_key, self->tmp_value);
 				return true;
 			}
-			switch (self.token)
+			switch (self->token)
 			{
 			case VAR_STR:
 			case VAR_NUM:
-				strcat(self.tmp_value, self.context);
+				strcat(self->tmp_value, self->context);
 				break;
 
 			case SYN_STR:
 			case SYN_NUM:
-				strcat(self.tmp_value, dic_get(self.context));
+				strcat(self->tmp_value, dic_get(self->context));
 				break;
 
 			case CALC_PLUS:
 				break;
 
 			case CUR_NEWLINE:
-				*self.result = dic_set(self.tmp_key, self.tmp_value);
+				*self->result = dic_set(self->tmp_key, self->tmp_value);
 				return true;
 
 			default:
@@ -481,7 +480,7 @@ static bool rpn_str(void)
 	}
 	else
 	{
-		*self.result = dic_get(self.context);
+		*self->result = dic_get(self->context);
 		return true;
 	}
 }
@@ -489,10 +488,11 @@ static bool rpn_str(void)
 //条件式
 bool rpn_judge(BAS_PACKET_BODY* body)
 {
+	rpn_instance self;
 	self.rp = body->opcode;
 
 	//左辺取り込み
-	if (!reader_next())  return false;
+	if (!reader_next(&self))  return false;
 	switch (self.token)
 	{
 	case VAR_NUM:
@@ -510,11 +510,11 @@ bool rpn_judge(BAS_PACKET_BODY* body)
 	}
 
 	//符号取り込み
-	if (!reader_next())  return false;
+	if (!reader_next(&self))  return false;
 	self.tmp_eval_op = self.token;
 
 	//右辺取り込み
-	if (!reader_next())  return false;
+	if (!reader_next(&self))  return false;
 	switch (self.token)
 	{
 	case VAR_NUM:
@@ -546,14 +546,15 @@ bool rpn_judge(BAS_PACKET_BODY* body)
 //スクリプト解析（上位）
 bool rpn_execute(BAS_PACKET_BODY* body)
 {
+	rpn_instance self;
 	self.rp = body->opcode;
 	self.result = &body->response;
 
-	if (reader_next())
+	if (reader_next(&self))
 	{
 		rpn_token token = self.token;
-		if (token == SYN_STR) return rpn_str();
-		if (token == SYN_NUM) return rpn_calc();
+		if (token == SYN_STR) return rpn_str(&self);
+		if (token == SYN_NUM) return rpn_calc(&self);
 	}
 	return false;
 }
@@ -561,8 +562,9 @@ bool rpn_execute(BAS_PACKET_BODY* body)
 //変数の中身取得
 char* rpn_get_value(char* key)
 {
+	static rpn_instance self;
 	self.rp = key;
-	if (reader_next())
+	if (reader_next(&self))
 	{
 		rpn_token token = self.token;
 		if (token == SYN_STR) return dic_get(self.context);
