@@ -2,7 +2,6 @@
 #include "config.h"
 #include "bas_property.h"
 
-
 static char* notify_queue[10];
 static byte notify_idx = 0;
 
@@ -27,9 +26,6 @@ static char ad_kin3_filter[16];		//ADフィルタ3パラメータ
 static byte moving;					//移動中(0=停止、1=動作中)
 static byte refl;					//原点センサ(0=原点スイッチOFF　　、1=原点スイッチON）
 static byte refr;					//原点センサ(0=スイッチリミットOFF、1=スイッチリミットON）
-
-//データ書込み用
-static char hw_buff[PROGRAM_LINE_COUNT];
 
 
 //通知処理(変化があれば通知)

@@ -152,13 +152,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="bas.h" />
+    <ClInclude Include="bas_protcol.h" />
     <ClInclude Include="bas_property.h" />
     <ClInclude Include="serial.h" />
     <ClInclude Include="usb.h" />
-    <ClInclude Include="util.h" />
+    <ClInclude Include="bas_common.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="bas_script.h" />
-    <ClInclude Include="bas_comm.h" />
     <ClInclude Include="dic.h" />
     <ClInclude Include="heap.h" />
     <ClInclude Include="resource.h" />
@@ -166,14 +166,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bas.c" />
+    <ClCompile Include="bas_protcol.c" />
     <ClCompile Include="heap.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="bas_property.c" />
     <ClCompile Include="serial.c" />
     <ClCompile Include="usb.c" />
-    <ClCompile Include="util.c" />
     <ClCompile Include="bas_script.c" />
-    <ClCompile Include="bas_comm.c" />
     <ClCompile Include="dic.c" />
     <ClCompile Include="rpn.c" />
   </ItemGroup>
