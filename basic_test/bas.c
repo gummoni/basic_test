@@ -58,6 +58,9 @@ void bas_init(void)
 	packet_dn.recieve = usb_read;
 	packet_dn.response = usb_write;
 	packet_dn.broadcast = serial_write;
+
+	script_packet.response = serial_write;
+	script_packet.broadcast = usb_write;
 }
 
 //=============================================================================

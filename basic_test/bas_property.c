@@ -54,17 +54,17 @@ void bas_property_job(BAS_PACKET* packet)
 	if (change_refl)
 	{
 		sprintf(hw_buff, "%s.REFL=%d", SELF_NAME, refl);
-		make_message(SELF_NAME, SELF_NAME, NOTIFY, hw_buff);
+		make_message(SELF_NAME, SELF_NAME, INVOKE, hw_buff);
 	}
 	if (change_refr)
 	{
 		sprintf(hw_buff, "%s.REFR=%d", SELF_NAME, refr);
-		make_message(SELF_NAME, SELF_NAME, NOTIFY, hw_buff);
+		make_message(SELF_NAME, SELF_NAME, INVOKE, hw_buff);
 	}
 	if (change_moving)
 	{
 		sprintf(hw_buff, "%s.MOVING=%d", SELF_NAME, moving);
-		make_message(SELF_NAME, SELF_NAME, NOTIFY, hw_buff);
+		make_message(SELF_NAME, SELF_NAME, INVOKE, hw_buff);
 	}
 	*/
 }

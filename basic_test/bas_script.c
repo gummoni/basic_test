@@ -9,7 +9,7 @@
 
 
 //受信バッファ
-static BAS_PACKET script_packet;
+BAS_PACKET script_packet;
 
 //送信バッファ
 static char send_buf[PROGRAM_LINE_COUNT];
@@ -139,7 +139,7 @@ static bool bas_script_if(BAS_PACKET* packet)
 static bool bas_script_goto(BAS_PACKET* packet)
 {
 	bool is_label;
-	state.run_no = label_search(packet->prm1, &is_label);
+	state.run_no = label_search(packet->prm2, &is_label);
 
 	if (is_label)
 	{

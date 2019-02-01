@@ -489,7 +489,7 @@ static bool rpn_str(rpn_instance* self)
 bool rpn_judge(BAS_PACKET* packet)
 {
 	rpn_instance self;
-	self.rp = packet->prm1;
+	self.rp = packet->prm2;
 
 	//¶•Óæ‚è‚İ
 	if (!reader_next(&self))  return false;

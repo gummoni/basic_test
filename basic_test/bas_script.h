@@ -79,6 +79,7 @@ typedef struct
 
 //BAS–|–ó‹@‚Ìó‘Ô
 extern BASIC_STATE state;
+extern BAS_PACKET script_packet;
 
 //ŠÖ”ˆê——
 extern char* make_message(char* from, char* to, char cmd, char* message);
