@@ -103,7 +103,6 @@ static BAS_COMM_TABLE packet_command_table[PACKET_BAS_COMMAND_TABLE] =
 	{ ABORT		, bas_comm_abort		},		// 中断コマンド（戻り値：なし）
 	{ ERR_CLEAR	, bas_comm_errclear		},		// エラー解除（戻り値：なし）
 	{ INVOKE	, rpn_execute			},		// 計算コマンド（戻り値：値）
-	{ STATUS	, bas_comm_status       },		// ステータス取得
 	{ LOAD		, bas_comm_load			},		// ファーム読込み
 	{ SAVE		, bas_comm_save			},		// ファーム保存
 };
@@ -128,13 +127,20 @@ bool bas_comm_execute(BAS_PACKET* packet)
 //=============================================================================
 static bool bas_parse(BAS_PACKET* packet, char ch)
 {
-	//===改行検知===
-	if ('\r' == ch || '\n' == ch)
+	//データ長エラー
+	if (bas_parser.parse_length >= BUFF_COUNT)
 	{
-		if (RECV_STATE_CORON < packet->state)
+		clear_packet(packet);
+		return false;
+	}
+
+	//===改行検知===
+	if ('\r' == ch || '\n' == ch || '\0' == ch)
+	{
+		if (RECV_STATE_CORON < bas_parser.state)
 		{
 			//正常に受信
-			packet->recv_buff[packet->recv_length++] = '\0';
+			bas_parser.parse_buff[bas_parser.parse_length++] = '\0';
 			return true;
 		}
 		else
@@ -148,87 +154,87 @@ static bool bas_parse(BAS_PACKET* packet, char ch)
 	//===ヘッダ区切り検知===
 	if (':' == ch)
 	{
-		if (RECV_STATE_CORON == packet->state)
+		if (RECV_STATE_CORON == bas_parser.state)
 		{
-			packet->state = RECV_STATE_PRM1;
+			bas_parser.state = RECV_STATE_PRM1;
 		}
 		else
 		{
 			//エラー（リセット待ち）
-			packet->state = RECV_STATE_ERROR;
+			bas_parser.state = RECV_STATE_ERROR;
 		}
 		return false;
 	}
 
 	//===ボディ区切り検知===
-	if ((',' == ch) && !packet->is_quot)
+	if ((',' == ch) && !bas_parser.is_quot)
 	{
-		switch (packet->state)
+		switch (bas_parser.state)
 		{
 		case RECV_STATE_FROM:
-			packet->recv_buff[packet->recv_length++] = '\0';
-			packet->reciever = &packet->recv_buff[packet->recv_length];
-			packet->state = RECV_STATE_TO;
+			bas_parser.parse_buff[bas_parser.parse_length++] = '\0';
+			packet->reciever = &bas_parser.parse_buff[bas_parser.parse_length];
+			bas_parser.state = RECV_STATE_TO;
 			break;
 
 		case RECV_STATE_TO:
-			packet->recv_buff[packet->recv_length++] = '\0';
-			packet->prm1 = &packet->recv_buff[packet->recv_length];
-			packet->state = RECV_STATE_COMMAND;
+			bas_parser.parse_buff[bas_parser.parse_length++] = '\0';
+			packet->prm1 = &bas_parser.parse_buff[bas_parser.parse_length];
+			bas_parser.state = RECV_STATE_COMMAND;
 			break;
 
 		case RECV_STATE_COMMAND:
 		case RECV_STATE_CORON:
 		case RECV_STATE_PRM6:
-			packet->state = RECV_STATE_ERROR;
+			bas_parser.state = RECV_STATE_ERROR;
 			break;
 
 		case RECV_STATE_PRM1:
-			packet->recv_buff[packet->recv_length++] = '\0';
-			packet->prm2 = &packet->recv_buff[packet->recv_length];
-			packet->state = RECV_STATE_PRM2;
+			bas_parser.parse_buff[bas_parser.parse_length++] = '\0';
+			packet->prm2 = &bas_parser.parse_buff[bas_parser.parse_length];
+			bas_parser.state = RECV_STATE_PRM2;
 			break;
 
 		case RECV_STATE_PRM2:
-			packet->recv_buff[packet->recv_length++] = '\0';
-			packet->prm3 = &packet->recv_buff[packet->recv_length];
-			packet->state = RECV_STATE_PRM3;
+			bas_parser.parse_buff[bas_parser.parse_length++] = '\0';
+			packet->prm3 = &bas_parser.parse_buff[bas_parser.parse_length];
+			bas_parser.state = RECV_STATE_PRM3;
 			break;
 
 		case RECV_STATE_PRM3:
-			packet->recv_buff[packet->recv_length++] = '\0';
-			packet->prm4 = &packet->recv_buff[packet->recv_length];
-			packet->state = RECV_STATE_PRM4;
+			bas_parser.parse_buff[bas_parser.parse_length++] = '\0';
+			packet->prm4 = &bas_parser.parse_buff[bas_parser.parse_length];
+			bas_parser.state = RECV_STATE_PRM4;
 			break;
 
 		case RECV_STATE_PRM4:
-			packet->recv_buff[packet->recv_length++] = '\0';
-			packet->prm5 = &packet->recv_buff[packet->recv_length];
-			packet->state = RECV_STATE_PRM5;
+			bas_parser.parse_buff[bas_parser.parse_length++] = '\0';
+			packet->prm5 = &bas_parser.parse_buff[bas_parser.parse_length];
+			bas_parser.state = RECV_STATE_PRM5;
 			break;
 
 		case RECV_STATE_PRM5:
-			packet->recv_buff[packet->recv_length++] = '\0';
-			packet->prm6 = &packet->recv_buff[packet->recv_length];
-			packet->state = RECV_STATE_PRM6;
+			bas_parser.parse_buff[bas_parser.parse_length++] = '\0';
+			packet->prm6 = &bas_parser.parse_buff[bas_parser.parse_length];
+			bas_parser.state = RECV_STATE_PRM6;
 			break;
 		}
 		return false;
 	}
 
 	//===データ解析===
-	switch (packet->state)
+	switch (bas_parser.state)
 	{
 	case RECV_STATE_FROM:
 		if (('A' <= ch && ch <= 'Z') || ('0' <= ch && ch <= '9') || ('_' == ch))
 		{
 			//文字格納
-			packet->recv_buff[packet->recv_length++] = ch;
+			bas_parser.parse_buff[bas_parser.parse_length++] = ch;
 		}
 		else
 		{
 			//エラー（リセット待ち）
-			packet->state = RECV_STATE_ERROR;
+			bas_parser.state = RECV_STATE_ERROR;
 		}
 		break;
 
@@ -237,12 +243,12 @@ static bool bas_parse(BAS_PACKET* packet, char ch)
 		if (('A' <= ch && ch <= 'Z') || ('0' <= ch && ch <= '9') || ('_' == ch))
 		{
 			//文字格納
-			packet->recv_buff[packet->recv_length++] = ch;
+			bas_parser.parse_buff[bas_parser.parse_length++] = ch;
 		}
 		else
 		{
 			//エラー（リセット待ち）
-			packet->state = RECV_STATE_ERROR;
+			bas_parser.state = RECV_STATE_ERROR;
 		}
 		break;
 
@@ -255,14 +261,13 @@ static bool bas_parse(BAS_PACKET* packet, char ch)
 		case ABORT:
 		case ERR_CLEAR:
 		case INVOKE:
-		case STATUS:
 		case LOAD:
 		case SAVE:
 			packet->command = ch;
-			packet->state = RECV_STATE_CORON;
+			bas_parser.state = RECV_STATE_CORON;
 			break;
 		default:
-			packet->state = RECV_STATE_ERROR;
+			bas_parser.state = RECV_STATE_ERROR;
 			break;
 		}
 		break;
@@ -280,22 +285,22 @@ static bool bas_parse(BAS_PACKET* packet, char ch)
 		if ('"' == ch)
 		{
 			//文字列記号検知
-			packet->is_quot ^= true;
-			packet->recv_buff[packet->recv_length++] = '"';
+			bas_parser.is_quot ^= true;
+			bas_parser.parse_buff[bas_parser.parse_length++] = '"';
 		}
 		else
 		{
-			if (!packet->is_quot)
+			if (!bas_parser.is_quot)
 			{
 				if ('a' <= ch && ch <= 'z') ch &= 0xbf;
 			}
 			if (('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z') || ('0' <= ch && ch <= '9') || ('+' == ch) || ('-' == ch) || ('*' == ch) || ('/' == ch) || ('.' == ch) || ('<' == ch) || ('>' == ch) || ('=' == ch) || ('%' == ch) || ('$' == ch) || (' ' == ch) || (',' == ch) || ('_' == ch) || ('(' == ch) || (')' == ch))
 			{
-				packet->recv_buff[packet->recv_length++] = ch;
+				bas_parser.parse_buff[bas_parser.parse_length++] = ch;
 			}
 			else
 			{
-				packet->state = RECV_STATE_ERROR;
+				bas_parser.state = RECV_STATE_ERROR;
 			}
 		}
 		break;
@@ -315,12 +320,7 @@ static void bas_response(BAS_PACKET* packet, bool ack)
 
 	if (ack)
 	{
-		if (STATUS == packet->command)
-		{
-			//ステータス返送
-			sprintf(result, "OK,%d,%d", state.run_no, state.err_no);
-		}
-		else if (NULL == packet->resp_buff)
+		if ('\0' == bas_parser.resp_buff[0])
 		{
 			//レスポンス無し
 			strcpy(result, "OK");
@@ -328,7 +328,7 @@ static void bas_response(BAS_PACKET* packet, bool ack)
 		else
 		{
 			//レスポンス有り
-			sprintf(result, "OK,%s", packet->resp_buff);
+			sprintf(result, "OK,%s", bas_parser.resp_buff);
 		}
 	}
 	else
@@ -338,7 +338,8 @@ static void bas_response(BAS_PACKET* packet, bool ack)
 	}
 	//返信
 	char* response_message = make_message(SELF_NAME, packet->sender, packet->command | 0x20, result);
-	packet->response(response_message, strlen(response_message));
+	int length = strlen(response_message);
+	packet->response(response_message, length);
 }
 
 //=============================================================================
@@ -349,10 +350,14 @@ static bool get_listen_id(char* topic, int* result)
 	int i;
 	for (i = 0; i < 10; i++)
 	{
-		if (0 == strcmp(topic, program_areas[i]))
-		{
-			*result = i;
-			return true;
+		int length = strlen(program_areas[i]);
+		if ('\0' == topic[length])
+		{	//長さチェックしてから鑑定
+			if (0 == strcmp(topic, program_areas[i]))
+			{
+				*result = i;
+				return true;
+			}
 		}
 	}
 
@@ -370,6 +375,7 @@ void bas_comm_job(BAS_PACKET* packet)
 
 	if (packet->recieve(&msg, &length))
 	{
+		printf(">>>%s", msg);
 		//受信解析
 		while (0 < length--)
 		{
@@ -377,16 +383,18 @@ void bas_comm_job(BAS_PACKET* packet)
 
 			if (bas_parse(packet, ch))
 			{
-				if (get_listen_id(packet->reciever, &packet->listen_id))
+				//1パケット受信完了
+				if (get_listen_id(packet->reciever, &bas_parser.listen_id))
 				{
 					bool ack = bas_comm_execute(packet);
-					if (0 == packet->listen_id)
+					if (0 == bas_parser.listen_id)
 					{
 						bas_response(packet, ack);
 					}
 				}
 				//次のパケット受信へ
 				clear_packet(packet);
+				return;
 			}
 		}
 	}
@@ -397,10 +405,10 @@ void bas_comm_job(BAS_PACKET* packet)
 //=============================================================================
 void clear_packet(BAS_PACKET* packet)
 {
-	packet->recv_length = 0;
-	packet->state = 0;
-	packet->is_quot = false;
-	packet->sender = packet->recv_buff;
+	bas_parser.parse_length = 0;
+	bas_parser.state = 0;
+	bas_parser.is_quot = false;
+	packet->sender = bas_parser.parse_buff;
 	packet->reciever = NULL;
 	packet->command = '\0';
 	packet->prm1 = NULL;
@@ -409,5 +417,4 @@ void clear_packet(BAS_PACKET* packet)
 	packet->prm4 = NULL;
 	packet->prm5 = NULL;
 	packet->prm6 = NULL;
-	packet->response = NULL;
 }

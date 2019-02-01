@@ -30,10 +30,6 @@ typedef enum
 	INVOKE = 'I',
 	INVOKE_ACK = 'i',
 
-	//ステータス取得
-	STATUS = 'Z',
-	STATUS_ACK = 'z',
-
 	//ファーム読込み
 	LOAD = 'X',
 	LOAD_ACK = 'x',

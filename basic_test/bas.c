@@ -19,6 +19,9 @@ static BAS_PACKET packet_dn;	//下位側
 //BAS翻訳機の状態
 BASIC_STATE state;
 
+//通信解析用パラメータ
+BAS_PARSER bas_parser;
+
 //24文字x100行のプログラムエリア
 char program_areas[PROGRAM_LINE_MAX][PROGRAM_LINE_COUNT] =
 {

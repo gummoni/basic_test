@@ -373,11 +373,11 @@ static bool rpn_calc(rpn_instance* self)
 		int result;
 		if (!rpn_num(self, &result)) return false;
 		itoa(result, self->tmp_value, 10);
-		*self->result = dic_set(self->tmp_key, self->tmp_value);
+		bas_parser.result_buff = dic_set(self->tmp_key, self->tmp_value);
 	}
 	else
 	{
-		*self->result = dic_get(self->context);
+		bas_parser.result_buff = dic_get(self->context);
 	}
 	return true;
 }
@@ -451,7 +451,7 @@ static bool rpn_str(rpn_instance* self)
 		{
 			if (!reader_next(self))
 			{
-				*self->result = dic_set(self->tmp_key, self->tmp_value);
+				bas_parser.result_buff = dic_set(self->tmp_key, self->tmp_value);
 				return true;
 			}
 			switch (self->token)
@@ -470,7 +470,7 @@ static bool rpn_str(rpn_instance* self)
 				break;
 
 			case CUR_NEWLINE:
-				*self->result = dic_set(self->tmp_key, self->tmp_value);
+				bas_parser.result_buff = dic_set(self->tmp_key, self->tmp_value);
 				return true;
 
 			default:
@@ -480,7 +480,7 @@ static bool rpn_str(rpn_instance* self)
 	}
 	else
 	{
-		*self->result = dic_get(self->context);
+		bas_parser.result_buff = dic_get(self->context);
 		return true;
 	}
 }
@@ -548,7 +548,6 @@ bool rpn_execute(BAS_PACKET* packet)
 {
 	rpn_instance self;
 	self.rp = packet->prm1;
-	self.result = &packet->response;
 
 	if (reader_next(&self))
 	{

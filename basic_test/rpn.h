@@ -55,7 +55,6 @@ typedef struct {
 	char* rp;								// read pointer
 	rpn_token token;						// token
 	char context[VARIABLE_NAME_LENGTH];		// command / variable:number / variable:string
-	char** result;
 
 	char tmp_key[VARIABLE_NAME_LENGTH];
 	char tmp_value[VARIABLE_NAME_LENGTH];

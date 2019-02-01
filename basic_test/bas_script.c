@@ -59,10 +59,10 @@ static int label_search(char* label, bool* is_label)
 //スクリプト構文解析
 static bool parse_script(BAS_PACKET* packet, char* msg)
 {
-	packet->prm1 = script_packet.recv_buff;
+	packet->prm1 = bas_parser.parse_buff;
 	packet->prm2 = packet->prm3 = packet->prm4 = packet->prm5 = packet->prm6 = NULL;
 	char** prms = &packet->prm2;
-	char* dst = script_packet.recv_buff;
+	char* dst = bas_parser.parse_buff;
 
 	bool qout = false;
 	for (;; msg++)
@@ -146,9 +146,8 @@ static bool bas_script_goto(BAS_PACKET* packet)
 		//引数代入
 		BAS_PACKET parse;
 		parse.reciever = parse.sender = SELF_NAME;
-		parse.response = NULL;
-		strcpy(script_packet.recv_buff, program_areas[state.run_no++]);
-		if (parse_script(&parse, script_packet.recv_buff))
+		strcpy(bas_parser.parse_buff, program_areas[state.run_no++]);
+		if (parse_script(&parse, bas_parser.parse_buff))
 		{
 			if (NULL == parse.prm1) return false;
 			if (NULL == packet->prm2) return false;
@@ -285,8 +284,7 @@ static bool bas_script_execute(BAS_PACKET* packet)
 		BAS_SCRIPT_TABLE command = script_command_table[i];
 		if (0 == strcmp(packet->prm1, command.name))
 		{
-			command.execute(packet);
-			return;
+			return command.execute(packet);
 		}
 	}
 

@@ -63,14 +63,15 @@ static int usb_i = 0;
 //1行読込み
 bool usb_read(char** msg, int* length)
 {
-	*msg = usb_msgs[usb_i];
-	if (NULL != *msg)
-	{
-		usb_i++;
-		*length = strlen(*msg);
-		return true;
-	}
 	return false;
+	//*msg = usb_msgs[usb_i];
+	//if (NULL != *msg)
+	//{
+	//	usb_i++;
+	//	*length = strlen(*msg);
+	//	return true;
+	//}
+	//return false;
 }
 
 //データ送信
