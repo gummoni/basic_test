@@ -57,12 +57,11 @@ static int label_search(char* label, bool* is_label)
 }
 
 //スクリプト構文解析
-static bool parse_script(BAS_PACKET* packet, char* msg)
+static bool parse_script(BAS_PACKET* packet, char* dst, char* msg)
 {
-	packet->prm1 = bas_parser.parse_buff;
-	packet->prm2 = packet->prm3 = packet->prm4 = packet->prm5 = packet->prm6 = NULL;
+	packet->prm1 = dst;
+	packet->prm2 = packet->prm3 = packet->prm4 = packet->prm5 = packet->prm6 = packet->prm7 = NULL;
 	char** prms = &packet->prm2;
-	char* dst = bas_parser.parse_buff;
 
 	bool qout = false;
 	for (;; msg++)
@@ -113,6 +112,13 @@ char* make_message(char* from, char* to, char cmd, char* message)
 //基本命令セット
 //=============================================================================
 
+//初期化
+void bas_script_init(void)
+{
+	heap_init();
+	state.run_no = state.err_no = state.stp_no = state.timer_count = 0;
+}
+
 //IF文
 static bool bas_script_if(BAS_PACKET* packet)
 {
@@ -120,15 +126,15 @@ static bool bas_script_if(BAS_PACKET* packet)
 	if (rpn_judge(packet))
 	{
 		//TRUE
-		state.run_no = label_search(packet->prm2, &is_label);
+		state.run_no = label_search(packet->prm3, &is_label);
 		if (is_label) state.run_no++;
 	}
 	else
 	{
 		//FALSE
-		if (NULL != packet->prm3)
+		if (NULL != packet->prm4)
 		{
-			state.run_no = label_search(packet->prm3, &is_label);
+			state.run_no = label_search(packet->prm4, &is_label);
 			if (is_label) state.run_no++;
 		}
 	}
@@ -146,13 +152,8 @@ static bool bas_script_goto(BAS_PACKET* packet)
 		//引数代入
 		BAS_PACKET parse;
 		parse.reciever = parse.sender = SELF_NAME;
-		strcpy(bas_parser.parse_buff, program_areas[state.run_no++]);
-		if (parse_script(&parse, bas_parser.parse_buff))
+		if (parse_script(&parse, bas_parser.resp_buff, program_areas[state.run_no++]))
 		{
-			if (NULL == parse.prm1) return false;
-			if (NULL == packet->prm2) return false;
-			dic_set(parse.prm1, packet->prm2);
-
 			if (NULL == parse.prm2) return false;
 			if (NULL == packet->prm3) return false;
 			dic_set(parse.prm2, packet->prm3);
@@ -164,6 +165,14 @@ static bool bas_script_goto(BAS_PACKET* packet)
 			if (NULL == parse.prm4) return false;
 			if (NULL == packet->prm5) return false;
 			dic_set(parse.prm4, packet->prm5);
+
+			if (NULL == parse.prm5) return false;
+			if (NULL == packet->prm6) return false;
+			dic_set(parse.prm5, packet->prm6);
+
+			if (NULL == parse.prm6) return false;
+			if (NULL == packet->prm7) return false;
+			dic_set(parse.prm6, packet->prm7);
 		}
 	}
 	return true;
@@ -189,8 +198,14 @@ static bool bas_script_return(BAS_PACKET* packet)
 	if (!heap_dequeue(&state.run_no))
 	{
 		//戻り先がないのでEND扱い
-		state.run_no = state.stp_no = 0;
+		bas_script_init();
 	}
+	return true;
+}
+
+static bool bas_script_end(BAS_PACKET* packet)
+{
+	bas_script_init();
 	return true;
 }
 
@@ -199,7 +214,7 @@ static bool bas_script_invoke(BAS_PACKET* packet)
 {
 	char resp[32];
 	char* to = packet->prm1;
-	char* key = packet->prm2;
+	char* key = packet->prm3;
 	char* val = rpn_get_value(key);
 	sprintf(resp, "%s.%s=%s", SELF_NAME, key, val);
 	char* response_message = make_message(SELF_NAME, to, INVOKE, resp);
@@ -263,15 +278,16 @@ static BAS_SCRIPT_TABLE script_command_table[SCRIPT_COMMAND_TABLE_LENGTH] =
 	{ "GOTO"	, bas_script_goto		},	//1
 	{ "GOSUB"	, bas_script_gosub		},	//2
 	{ "RETURN"	, bas_script_return		},	//3
-	{ "INVOKE"	, bas_script_invoke		},	//4
-	{ "DELAY"	, bas_script_delay		},	//5
-	{ "CHK"		, bas_script_check		},	//6
-	{ "ERR"		, bas_script_err		},	//7
+	{ "END"		, bas_script_end		},	//4
+	{ "INVOKE"	, bas_script_invoke		},	//5
+	{ "DELAY"	, bas_script_delay		},	//6
+	{ "CHK"		, bas_script_check		},	//7
+	{ "ERR"		, bas_script_err		},	//8
 	//----拡張命令（PB210）---
-	{ "ORG"		, bas_script_org		},	//8
-	{ "ABS"		, bas_script_abs		},	//9
-	{ "INC"		, bas_script_inc		},	//10
-	{ "STOP"	, bas_script_stop		},	//11
+	{ "ORG"		, bas_script_org		},	//9
+	{ "ABS"		, bas_script_abs		},	//10
+	{ "INC"		, bas_script_inc		},	//11
+	{ "STOP"	, bas_script_stop		},	//12
 };
 
 //コマンド実行
@@ -297,10 +313,18 @@ void bas_script_job(void)
 {
 	while (true)
 	{
-		if ((0 != state.err_no) || (10 > state.run_no)) return;			//プログラム実行中かどうか判別
-		char* msg = program_areas[state.run_no++];						//プログラムコード取得
-		if ('*' == msg[0]) continue;									//ラベルならスキップ
-		if (!parse_script(&script_packet, msg)) return;					//プログラム番地のコードを解析
-		if (!bas_script_execute(&script_packet)) return;				//実行
+		if (state.run_no == 0)
+		{
+			printf("%d\n", state.run_no);
+		}
+		else
+		{
+			printf("%d\n", state.run_no);
+		}
+		if ((0 != state.err_no) || (10 > state.run_no)) return;					//プログラム実行中かどうか判別
+		char* msg = program_areas[state.run_no++];								//プログラムコード取得
+		if ('*' == msg[0]) continue;											//ラベルならスキップ
+		if (!parse_script(&script_packet, bas_parser.parse_buff, msg)) return;	//プログラム番地のコードを解析
+		if (!bas_script_execute(&script_packet)) return;						//実行
 	}
 }

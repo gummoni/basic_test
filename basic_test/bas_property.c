@@ -15,7 +15,7 @@ static ushort ad_kin2_val;			//AD2値（フィルタ２）
 static ushort ad_kin3_val;			//AD3値（フィルタ３）
 
 //読み書きOK（通知なし）
-static byte torque;					//トルクON/OFF(0=OFF, 1=ON)
+static byte output;					//出力OFF/ON(0=OFF, 1=ON)
 static byte power;					//最大出力(0-100, 0=0%, 100=100%)
 static byte dir;					//方向(0=正転, 1=反転)
 static char ad_kin1_filter[16];		//ADフィルタ1パラメータ
@@ -27,6 +27,15 @@ static byte moving;					//移動中(0=停止、1=動作中)
 static byte refl;					//原点センサ(0=原点スイッチOFF　　、1=原点スイッチON）
 static byte refr;					//原点センサ(0=スイッチリミットOFF、1=スイッチリミットON）
 
+//TORQUE=1
+//POWER=100
+//DIR=0
+//AD1$="10,10,10"
+//AD2$="10,10,10"
+//AD3$="10,10,10"
+//MOVING
+//REFL
+//REFR
 
 //通知処理(変化があれば通知)
 void bas_property_job(BAS_PACKET* packet)

@@ -45,20 +45,23 @@ char program_areas[PROGRAM_LINE_MAX][PROGRAM_LINE_COUNT] =
 //=============================================================================
 void bas_init(void)
 {
+	//パラメータ初期化
 	dic_clear();
+	bas_script_init();
 
-	state.run_no = state.err_no = state.stp_no = state.timer_count = 0;
-
+	//上位通信用
 	clear_packet(&packet_up);
 	packet_up.recieve = serial_read;
 	packet_up.response = serial_write;
 	packet_up.broadcast = usb_write;
 	
+	//下位通信用
 	clear_packet(&packet_dn);
 	packet_dn.recieve = usb_read;
 	packet_dn.response = usb_write;
 	packet_dn.broadcast = serial_write;
 
+	//スクリプト実行用
 	script_packet.response = serial_write;
 	script_packet.broadcast = usb_write;
 }

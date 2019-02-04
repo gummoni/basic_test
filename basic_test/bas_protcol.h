@@ -12,6 +12,7 @@
 #define RECV_STATE_PRM4		7
 #define RECV_STATE_PRM5		8
 #define RECV_STATE_PRM6		9
+#define RECV_STATE_PRM7		10
 #define RECV_STATE_ERROR	254
 
 extern void bas_comm_job(BAS_PACKET* packet);

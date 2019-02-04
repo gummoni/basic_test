@@ -36,6 +36,7 @@ typedef struct
 	char* prm4;				//リードポインタ4
 	char* prm5;				//リードポインタ5
 	char* prm6;				//リードポインタ6
+	char* prm7;				//リードポインタ7
 	//-----メソッド-----
 	bool(*recieve)(char** msg, int* length);
 	void(*response)(char* msg, int length);

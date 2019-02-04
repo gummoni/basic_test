@@ -5,6 +5,12 @@
 static byte heap_memory[MAX_GOSUB_HEAP_SIZE];
 static byte heap_idx = 0;
 
+//ヒープインデックス初期化
+void heap_init(void)
+{
+	heap_idx = 0;
+}
+
 //ヒープメモリにエンキュー
 bool heap_enqueue(byte value)
 {

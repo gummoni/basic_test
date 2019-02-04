@@ -52,7 +52,7 @@ static bool bas_comm_start(BAS_PACKET* packet)
 static bool bas_comm_abort(BAS_PACKET* packet)
 {
 	if (0 != state.err_no) return false;
-	state.run_no = 0;
+	bas_script_init();
 	return true;
 }
 
@@ -61,7 +61,7 @@ static bool bas_comm_abort(BAS_PACKET* packet)
 //=============================================================================
 static bool bas_comm_errclear(BAS_PACKET* packet)
 {
-	state.err_no = state.run_no = state.stp_no = 0;
+	bas_script_init();
 	return true;
 }
 
@@ -185,7 +185,7 @@ static bool bas_parse(BAS_PACKET* packet, char ch)
 
 		case RECV_STATE_COMMAND:
 		case RECV_STATE_CORON:
-		case RECV_STATE_PRM6:
+		case RECV_STATE_PRM7:
 			bas_parser.state = RECV_STATE_ERROR;
 			break;
 
@@ -217,6 +217,12 @@ static bool bas_parse(BAS_PACKET* packet, char ch)
 			bas_parser.parse_buff[bas_parser.parse_length++] = '\0';
 			packet->prm6 = &bas_parser.parse_buff[bas_parser.parse_length];
 			bas_parser.state = RECV_STATE_PRM6;
+			break;
+
+		case RECV_STATE_PRM6:
+			bas_parser.parse_buff[bas_parser.parse_length++] = '\0';
+			packet->prm7 = &bas_parser.parse_buff[bas_parser.parse_length];
+			bas_parser.state = RECV_STATE_PRM7;
 			break;
 		}
 		return false;
