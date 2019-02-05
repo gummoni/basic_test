@@ -7,8 +7,9 @@ void main() {
 
 	bas_init();
 
-	while (true)
+	for (int i = 0; i < 100; i++)
 	{
 		bas_job();
 	}
+	printf("-------\n");
  }
