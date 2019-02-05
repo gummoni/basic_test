@@ -142,7 +142,7 @@ static inline void parse_str(rpn_instance* self)
 	int idx = 0;
 
 	self->token = VAR_STR;
-	while (true)
+	for (idx = 0; idx < VARIABLE_NAME_LENGTH; idx++)
 	{
 		char ch = get_char(self);
 		if ('\\' == ch)
@@ -159,7 +159,7 @@ static inline void parse_str(rpn_instance* self)
 			//終端
 			break;
 		}
-		self->context[idx++] = ch;
+		self->context[idx] = ch;
 	}
 	self->context[idx] = '\0';
 }
@@ -246,6 +246,20 @@ static inline void parse_le_ne_lt(rpn_instance* self)
 	}
 }
 
+//AND解析
+static inline void parse_and(rpn_instance* self)
+{
+	self->token = OPE_AND;
+	self->context[0] = '\0';
+}
+
+//OR解析
+static inline void parse_or(rpn_instance* self)
+{
+	self->token = OPE_OR;
+	self->context[0] = '\0';
+}
+
 //次のトークンを取得する
 static bool reader_next(rpn_instance* self)
 {
@@ -256,6 +270,8 @@ static bool reader_next(rpn_instance* self)
 	else if ('\r' == ch || '\n' == ch) parse_newline(self);
 	else if ('0' <= ch && ch <= '9') parse_num(self, ch);
 	else if ('A' <= ch && ch <= 'Z' || '_' == ch || '.' == ch) parse_val(self, ch);
+	else if ('&' == ch) parse_and(self);
+	else if ('|' == ch) parse_or(self);
 	else if ('"' == ch) parse_str(self);
 	else if ('+' == ch) parse_plus(self);
 	else if ('-' == ch) parse_minus(self);
@@ -269,23 +285,39 @@ static bool reader_next(rpn_instance* self)
 }
 
 //数字に変換
-static inline int convert_value(rpn_token token, char* value)
+static inline void convert_value(rpn_token token, char* value, int* outNum, char** outStr)
 {
 	int result = 0;
-	if (VAR_NUM == token) result = strtol(value, NULL, 0);
-	else if (SYN_NUM == token) result = strtol(dic_get(value), NULL, 0);
-	return result;
+	switch (token)
+	{
+	case VAR_NUM:
+		*outStr = NULL;
+		*outNum = strtol(value, NULL, 0);
+		return;
+
+	case VAR_STR:
+		*outStr = value;
+		*outNum = strtol(value, NULL, 0);
+		return;
+
+	case SYN_NUM:
+	case SYN_STR:
+		*outStr = dic_get(value);
+		*outNum = strtol(*outStr, NULL, 0);
+		return;
+	}	
 }
 
 //逆ポーランド記法デコード
 static void rpn_decode(rpn_instance* self, rpn_info* info)
 {
 	rpn_token token = self->token;
+	int result;
 
 	switch (info->state)
 	{
 	case 0:
-		if ((CALC_PLUS == token) || (CALC_MINUS == token))
+		if (TOKEN_NONE != (token & (CALC_PLUS | CALC_MINUS | OPE_AND | OPE_OR | OPE_EQ | OPE_NE | OPE_GT | OPE_GE | OPE_LT | OPE_LE)))
 		{
 			info->left = 0;
 			info->old_op = token;
@@ -293,7 +325,7 @@ static void rpn_decode(rpn_instance* self, rpn_info* info)
 		}
 		else
 		{
-			info->left = convert_value(token, self->context);
+			convert_value(token, self->context, &info->left, &info->tmp_eval_left);
 			info->state = 1;
 		}
 		break;
@@ -306,17 +338,19 @@ static void rpn_decode(rpn_instance* self, rpn_info* info)
 	case 2:
 		if (CALC_MUL == info->old_op)
 		{
-			info->left = info->left * convert_value(token, self->context);
+			convert_value(token, self->context, &result, &info->tmp_eval_left);
+			info->left *= result;
 			info->state = 1;
 		}
 		else if (CALC_DIV == info->old_op)
 		{
-			info->left = info->left / convert_value(token, self->context);
+			convert_value(token, self->context, &result, &info->tmp_eval_left);
+			info->left /= result;
 			info->state = 1;
 		}
 		else
 		{
-			info->right = convert_value(token, self->context);
+			convert_value(token, self->context, &info->right, &info->tmp_eval_right);
 			info->state = 3;
 		}
 		break;
@@ -329,22 +363,88 @@ static void rpn_decode(rpn_instance* self, rpn_info* info)
 	case 4:
 		if (CALC_MUL == info->cur_op)
 		{
-			info->right = info->right * convert_value(token, self->context);
+			convert_value(token, self->context, &result, &info->tmp_eval_right);
+			info->right *= result;
 		}
 		else if (CALC_DIV == info->old_op)
 		{
-			info->right = info->right / convert_value(token, self->context);
+			convert_value(token, self->context, &result, &info->tmp_eval_right);
+			info->right /= result;
 		}
 		else if (CALC_PLUS == info->old_op)
 		{
 			info->left = info->left + info->right;
-			info->right = convert_value(token, self->context);
+			convert_value(token, self->context, &info->right, &info->tmp_eval_right);
 			info->old_op = info->cur_op;
 		}
 		else if (CALC_MINUS == info->old_op)
 		{
 			info->left = info->left - info->right;
-			info->right = convert_value(token, self->context);
+			convert_value(token, self->context, &info->right, &info->tmp_eval_right);
+			info->old_op = info->cur_op;
+		}
+		else if (OPE_AND == info->old_op)
+		{
+			info->left = (0 != info->left) && (0 != info->right);
+			convert_value(token, self->context, &info->right, &info->tmp_eval_right);
+			info->old_op = info->cur_op;
+		}
+		else if (OPE_OR == info->old_op)
+		{
+			info->left = (0 != info->left) || (0 != info->right);
+			convert_value(token, self->context, &info->right, &info->tmp_eval_right);
+			info->old_op = info->cur_op;
+		}
+		else if (OPE_EQ == info->old_op)
+		{
+			if ((NULL != info->tmp_eval_left) && (NULL != info->tmp_eval_right))
+			{
+				info->left = (0 == strcmp(info->tmp_eval_left, info->tmp_eval_right)) ? 1 : 0;
+				info->tmp_eval_left = info->tmp_eval_right = NULL;
+			}
+			else
+			{
+				info->left = (info->left == info->right) ? 1 : 0;
+			}
+			convert_value(token, self->context, &info->right, &info->tmp_eval_right);
+			info->old_op = info->cur_op;
+		}
+		else if (OPE_NE == info->old_op)
+		{
+			if ((NULL != info->tmp_eval_left) && (NULL != info->tmp_eval_right))
+			{
+				info->left = (0 != strcmp(info->tmp_eval_left, info->tmp_eval_right)) ? 1 : 0;
+				info->tmp_eval_left = info->tmp_eval_right = NULL;
+			}
+			else
+			{
+				info->left = (info->left != info->right) ? 1 : 0;
+			}
+			convert_value(token, self->context, &info->right, &info->tmp_eval_right);
+			info->old_op = info->cur_op;
+		}
+		else if (OPE_GT == info->old_op)
+		{
+			info->left = (info->left < info->right) ? 1 : 0;
+			convert_value(token, self->context, &info->right, &info->tmp_eval_right);
+			info->old_op = info->cur_op;
+		}
+		else if (OPE_GE == info->old_op)
+		{
+			info->left = (info->left <= info->right) ? 1 : 0;
+			convert_value(token, self->context, &info->right, &info->tmp_eval_right);
+			info->old_op = info->cur_op;
+		}
+		else if (OPE_LT == info->old_op)
+		{
+			info->left = (info->left > info->right) ? 1 : 0;
+			convert_value(token, self->context, &info->right, &info->tmp_eval_right);
+			info->old_op = info->cur_op;
+		}
+		else if (OPE_LE == info->old_op)
+		{
+			info->left = (info->left >= info->right) ? 1 : 0;
+			convert_value(token, self->context, &info->right, &info->tmp_eval_right);
 			info->old_op = info->cur_op;
 		}
 		info->state = 3;
@@ -361,6 +461,36 @@ static int rpn_result(rpn_info* self)
 		else if (CALC_DIV == self->old_op) return self->left / self->right;
 		else if (CALC_PLUS == self->old_op) return self->left + self->right;
 		else if (CALC_MINUS == self->old_op) return self->left - self->right;
+		else if (OPE_AND == self->old_op) return ((0 != self->left) && (0 != self->right)) ? 1 : 0;
+		else if (OPE_OR == self->old_op) return ((0 != self->left) || (0 != self->right)) ? 1 : 0;
+		else if (OPE_EQ == self->old_op)
+		{
+			if ((NULL != self->tmp_eval_left) && (NULL != self->tmp_eval_right))
+			{
+				self->left = (0 != strcmp(self->tmp_eval_left, self->tmp_eval_right)) ? 1 : 0;
+				self->tmp_eval_left = self->tmp_eval_right = NULL;
+			}
+			else
+			{
+				self->left = (self->left == self->right) ? 1 : 0;
+			}
+		}
+		else if (OPE_NE == self->old_op)
+		{
+			if ((NULL != self->tmp_eval_left) && (NULL != self->tmp_eval_right))
+			{
+				self->left = (0 != strcmp(self->tmp_eval_left, self->tmp_eval_right)) ? 1 : 0;
+				self->tmp_eval_left = self->tmp_eval_right = NULL;
+			}
+			else
+			{
+				self->left = (self->left != self->right) ? 1 : 0;
+			}
+		}
+		else if (OPE_GT == self->old_op) return (self->left < self->right) ? 1 : 0;
+		else if (OPE_GE == self->old_op) return (self->left <= self->right) ? 1 : 0;
+		else if (OPE_LT == self->old_op) return (self->left > self->right) ? 1 : 0;
+		else if (OPE_LE == self->old_op) return (self->left >= self->right) ? 1 : 0;
 	}
 	return self->left;
 }
@@ -371,6 +501,9 @@ static bool rpn_calc(rpn_instance* self)
 	if (*self->rp == '=')
 	{
 		int result;
+		strcpy(self->tmp_key, self->context);
+		if (!reader_next(self)) return false;
+		if (self->token != CALC_EQUAL) return false;
 		if (!rpn_num(self, &result)) return false;
 		itoa(result, self->tmp_value, 10);
 		bas_parser.result_buff = dic_set(self->tmp_key, self->tmp_value);
@@ -387,11 +520,7 @@ static bool rpn_num(rpn_instance* self, int* result)
 {
 	rpn_info rpn_contexts[4];
 	rpn_info* pt_rpn = rpn_contexts;
-	strcpy(self->tmp_key, self->context);
 	pt_rpn->state = 0;
-
-	if (!reader_next(self)) return false;
-	if (self->token != CALC_EQUAL) return false;
 
 	while (true)
 	{
@@ -402,18 +531,26 @@ static bool rpn_num(rpn_instance* self, int* result)
 		}
 		switch (self->token)
 		{
-		case VAR_STR:
-		case SYN_STR:
 		case SYN_CMD:
 		default:
 			return false;
 
 		case VAR_NUM:
+		case VAR_STR:
 		case SYN_NUM:
+		case SYN_STR:
 		case CALC_PLUS:
 		case CALC_MINUS:
 		case CALC_MUL:
 		case CALC_DIV:
+		case OPE_AND:
+		case OPE_OR:
+		case OPE_EQ:
+		case OPE_NE:
+		case OPE_GT:
+		case OPE_GE:
+		case OPE_LT:
+		case OPE_LE:
 			rpn_decode(self, pt_rpn);
 			break;
 
@@ -488,8 +625,10 @@ static bool rpn_str(rpn_instance* self)
 //条件式
 bool rpn_judge(BAS_PACKET* packet)
 {
+	int result;
 	rpn_instance self;
 	self.rp = packet->prm2;
+	char* msg;
 
 	//左辺取り込み
 	if (!reader_next(&self))  return false;
@@ -497,50 +636,28 @@ bool rpn_judge(BAS_PACKET* packet)
 	{
 	case VAR_NUM:
 	case VAR_STR:
-		strcpy(self.tmp_eval_left, self.context);
+	case SYN_NUM:
 		break;
 
-	case SYN_NUM:
 	case SYN_STR:
-		strcpy(self.tmp_eval_left, dic_get(self.context));
+		msg = dic_get(self.context);
+		if (!reader_next(&self))
+		{
+			if (!reader_next(&self))
+			{
+				//文字列を展開して解析を試みる
+				self.rp = msg;
+			}
+		}
 		break;
 
 	default:
 		return false;
 	}
 
-	//符号取り込み
-	if (!reader_next(&self))  return false;
-	self.tmp_eval_op = self.token;
-
-	//右辺取り込み
-	if (!reader_next(&self))  return false;
-	switch (self.token)
-	{
-	case VAR_NUM:
-	case VAR_STR:
-		strcpy(self.tmp_eval_right, self.context);
-		break;
-	case SYN_NUM:
-	case SYN_STR:
-		strcpy(self.tmp_eval_right, dic_get(self.context));
-		break;
-	}
-
-	//評価
-	if (OPE_EQ == self.tmp_eval_op) return 0 == strcmp(self.tmp_eval_left, self.tmp_eval_right);
-	if (OPE_NE == self.tmp_eval_op) return 0 != strcmp(self.tmp_eval_left, self.tmp_eval_right);
-	int valL = strtol(self.tmp_eval_left, NULL, 0);
-	int valR = strtol(self.tmp_eval_right, NULL, 0);
-
-	switch (self.tmp_eval_op)
-	{
-	case OPE_GT: return (valL < valR);
-	case OPE_GE: return (valL <= valR);
-	case OPE_LT: return (valL > valR);
-	case OPE_LE: return (valL >= valR);
-	default: return false;
-	}
+	//解析
+	if (!rpn_num(&self, &result)) return false;
+	return 0 != result;
 }
 
 //スクリプト解析（上位）

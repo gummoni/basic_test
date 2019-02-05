@@ -28,9 +28,9 @@ typedef enum {
 	// 11 : \ 
 	CALC_MOD = 0x00000800,
 	// 12 : &
-	CALC_AND = 0x00001000,
+	OPE_AND = 0x00001000,
 	// 13 : |
-	CALC_OR = 0x00002000,
+	OPE_OR = 0x00002000,
 	// 14 : ==
 	OPE_EQ = 0x00004000,
 	// 15 : <>
@@ -58,8 +58,6 @@ typedef struct {
 
 	char tmp_key[VARIABLE_NAME_LENGTH];
 	char tmp_value[VARIABLE_NAME_LENGTH];
-	char tmp_eval_left[VARIABLE_NAME_LENGTH];
-	char tmp_eval_right[VARIABLE_NAME_LENGTH];
 	rpn_token tmp_eval_op;
 } rpn_instance;
 
@@ -69,6 +67,8 @@ typedef struct
 	int right;
 	rpn_token old_op;
 	rpn_token cur_op;
+	char* tmp_eval_left;
+	char* tmp_eval_right;
 	int state;
 } rpn_info;
 

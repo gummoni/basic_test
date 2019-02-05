@@ -70,6 +70,7 @@ static bool parse_script(BAS_PACKET* packet, char* dst, char* msg)
 		if ('"' == ch)
 		{	//文字列範囲(区切り文字で区切らないようにする)
 			qout ^= true;
+			*(dst++) = '"';
 		}
 		else if ((' ' == ch) && !qout)
 		{	//区切り記号検知
@@ -270,7 +271,7 @@ static bool bas_script_err(BAS_PACKET* packet)
 
 //------------------------------拡張ここまで------------------------------
 
-#define SCRIPT_COMMAND_TABLE_LENGTH	12
+#define SCRIPT_COMMAND_TABLE_LENGTH	13
 static BAS_SCRIPT_TABLE script_command_table[SCRIPT_COMMAND_TABLE_LENGTH] =
 {
 	//---基本命令---
@@ -313,14 +314,7 @@ void bas_script_job(void)
 {
 	while (true)
 	{
-		if (state.run_no == 0)
-		{
-			printf("%d\n", state.run_no);
-		}
-		else
-		{
-			printf("%d\n", state.run_no);
-		}
+		printf("%d\n", state.run_no);
 		if ((0 != state.err_no) || (10 > state.run_no)) return;					//プログラム実行中かどうか判別
 		char* msg = program_areas[state.run_no++];								//プログラムコード取得
 		if ('*' == msg[0]) continue;											//ラベルならスキップ
