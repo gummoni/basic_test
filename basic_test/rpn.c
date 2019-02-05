@@ -533,6 +533,7 @@ static bool rpn_num(rpn_instance* self, int* result)
 		{
 		case SYN_CMD:
 		default:
+			state.err_no = err_parse;
 			return false;
 
 		case VAR_NUM:
@@ -584,7 +585,8 @@ static bool rpn_str(rpn_instance* self)
 		if (!reader_next(self)) return false;
 		if (self->token != CALC_EQUAL) return false;
 
-		while (true)
+		int i;
+		for (i = 0; i < 10; i++)
 		{
 			if (!reader_next(self))
 			{
@@ -611,9 +613,12 @@ static bool rpn_str(rpn_instance* self)
 				return true;
 
 			default:
+				state.err_no = err_parse;
 				return false;
 			}
 		}
+		state.err_no = err_too_long;
+		return false;
 	}
 	else
 	{
@@ -655,6 +660,7 @@ bool rpn_judge(BAS_PACKET* packet)
 		break;
 
 	default:
+		state.err_no = err_parse;
 		return false;
 	}
 
@@ -675,6 +681,7 @@ bool rpn_execute(BAS_PACKET* packet)
 		if (token == SYN_STR) return rpn_str(&self);
 		if (token == SYN_NUM) return rpn_calc(&self);
 	}
+	state.err_no = err_parse;
 	return false;
 }
 

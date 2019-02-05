@@ -18,13 +18,17 @@ static char send_buf[PROGRAM_LINE_COUNT];
 //ラベル照合
 static bool label_compare(char* label, char* msg)
 {
-	while (true)
+	int i;
+	for (i = 0; i < PROGRAM_LINE_MAX; i++)
 	{
 		char a = *(label++);
 		char b = *(msg++);
 		if (a == '\0') return true;
 		if (a != b) return false;
 	}
+
+	state.err_no = err_too_long;
+	return false;
 }
 
 //ラベル位置取得（行番号も含む）
@@ -88,6 +92,7 @@ static bool parse_script(BAS_PACKET* packet, char* dst, char* msg)
 			*(dst++) = ch;
 		}
 	}
+	state.err_no = err_parse;
 	return false;
 }
 

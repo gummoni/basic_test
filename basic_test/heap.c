@@ -21,6 +21,7 @@ bool heap_enqueue(byte value)
 	}
 	else
 	{
+		state.err_no = err_out_of_return;
 		return false;
 	}
 }
@@ -35,6 +36,7 @@ bool heap_dequeue(byte* value)
 	}
 	else
 	{
+		state.err_no = err_under_of_return;
 		return false;
 	}
 }

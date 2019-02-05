@@ -43,6 +43,31 @@ typedef struct
 	void(*broadcast)(char* msg, int length);
 } BAS_PACKET;
 
+//エラーコード(＋ステータスコード)
+typedef enum
+{
+	err_none = 0,			//エラー無し
+	err_busy = 1,			//動作中
+	err_under_of_return,	//リターンの回数が多い
+	err_out_of_return,		//ヒープ領域オーバー
+	err_jump,				//ジャンプ失敗
+	err_null = 2,			//NULLエラー
+	err_too_long = 3,		//文字列長さオーバー
+	err_parse,				//パースエラー
+	err_var_full,			//辞書オーバー
+} error_code;
+
+//動作状態
+typedef struct
+{
+	uint8_t run_no;			//実行行数
+	error_code err_no;		//エラー番号
+	int stp_no;				//内部ステップ番号
+	int timer_count;		//タイマーカウント
+} BASIC_STATE;
+
+extern BASIC_STATE state;
+
 extern BAS_PARSER bas_parser;
 extern char* make_message(char* from, char* to, char cmd, char* message);
 

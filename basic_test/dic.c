@@ -29,6 +29,7 @@ static bool search_key(char* key, int* result)
 		}
 	}
 	//–”t
+	state.err_no = err_var_full;
 	return false;
 }
 

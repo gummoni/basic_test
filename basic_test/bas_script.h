@@ -48,28 +48,6 @@ typedef struct
 	bool(*execute)(BAS_PACKET* context);
 } BAS_COMM_TABLE;
 
-
-//エラーコード(＋ステータスコード)
-typedef enum
-{
-	err_none = 0,			//エラー無し
-	err_busy = 1,			//動作中
-	err_out_of_return,		//ヒープ領域オーバー
-	err_jump,				//ジャンプ失敗
-	err_null = 2,			//NULLエラー
-} error_code;
-
-
-//動作状態
-typedef struct
-{
-	uint8_t run_no;			//実行行数
-	error_code err_no;		//エラー番号
-	int stp_no;				//内部ステップ番号
-	int timer_count;		//タイマーカウント
-} BASIC_STATE;
-
-
 //コマンドテーブル
 typedef struct
 {
@@ -79,7 +57,6 @@ typedef struct
 
 
 //BAS翻訳機の状態
-extern BASIC_STATE state;
 extern BAS_PACKET script_packet;
 
 //関数一覧
