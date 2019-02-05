@@ -637,18 +637,21 @@ bool rpn_judge(BAS_PACKET* packet)
 	case VAR_NUM:
 	case VAR_STR:
 	case SYN_NUM:
+		self.rp = packet->prm2;
 		break;
 
 	case SYN_STR:
 		msg = dic_get(self.context);
 		if (!reader_next(&self))
 		{
-			if (!reader_next(&self))
-			{
-				//•¶š—ñ‚ğ“WŠJ‚µ‚Ä‰ğÍ‚ğ‚İ‚é
-				self.rp = msg;
-			}
+			//•¶š—ñ‚ğ“WŠJ‚µ‚Ä‰ğÍ‚ğ‚İ‚é
+			self.rp = msg;
 		}
+		else
+		{
+			self.rp = packet->prm2;
+		}
+
 		break;
 
 	default:
