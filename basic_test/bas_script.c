@@ -64,7 +64,8 @@ static bool parse_script(BAS_PACKET* packet, char* dst, char* msg)
 	char** prms = &packet->prm2;
 
 	bool qout = false;
-	for (;; msg++)
+	int i;
+	for (i = 0; i < BUFF_COUNT; i++, msg++)
 	{
 		char ch = *msg;
 		if ('"' == ch)
@@ -83,10 +84,11 @@ static bool parse_script(BAS_PACKET* packet, char* dst, char* msg)
 			return true;
 		}
 		else
-		{	//上記条件出ない場合はデータコピー
+		{	//上記条件以上はデータコピー
 			*(dst++) = ch;
 		}
 	}
+	return false;
 }
 
 //=============================================================================
@@ -216,8 +218,21 @@ static bool bas_script_invoke(BAS_PACKET* packet)
 	char resp[32];
 	char* to = packet->prm1;
 	char* key = packet->prm3;
+	if (key == NULL)
+	{
+		state.err_no = err_null;
+		return false;
+	}
 	char* val = rpn_get_value(key);
-	sprintf(resp, "%s.%s=%s", SELF_NAME, key, val);
+	int len = strlen(key);
+	if ('$' == key[len - 1])
+	{
+		sprintf(resp, "%s.%s=\"%s\"", SELF_NAME, key, val);
+	}
+	else
+	{
+		sprintf(resp, "%s.%s=%s", SELF_NAME, key, val);
+	}
 	char* response_message = make_message(SELF_NAME, to, INVOKE, resp);
 	int length = strlen(response_message);
 	packet->response(response_message, length);

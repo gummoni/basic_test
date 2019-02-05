@@ -56,6 +56,7 @@ typedef enum
 	err_busy = 1,			//動作中
 	err_out_of_return,		//ヒープ領域オーバー
 	err_jump,				//ジャンプ失敗
+	err_null = 2,			//NULLエラー
 } error_code;
 
 
