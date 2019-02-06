@@ -161,24 +161,24 @@ static void bas_script_goto(BAS_PACKET* packet)
 		parse.reciever = parse.sender = SELF_NAME;
 		if (parse_script(&parse, bas_parser.resp_buff, program_areas[state.run_no++]))
 		{
-			if (NULL == parse.prm2) return false;
-			if (NULL == packet->prm3) return false;
+			if (NULL == parse.prm2) return;
+			if (NULL == packet->prm3) return;
 			dic_set(parse.prm2, packet->prm3);
 
-			if (NULL == parse.prm3) return false;
-			if (NULL == packet->prm4) return false;
+			if (NULL == parse.prm3) return;
+			if (NULL == packet->prm4) return;
 			dic_set(parse.prm3, packet->prm4);
 
-			if (NULL == parse.prm4) return false;
-			if (NULL == packet->prm5) return false;
+			if (NULL == parse.prm4) return;
+			if (NULL == packet->prm5) return;
 			dic_set(parse.prm4, packet->prm5);
 
-			if (NULL == parse.prm5) return false;
-			if (NULL == packet->prm6) return false;
+			if (NULL == parse.prm5) return;
+			if (NULL == packet->prm6) return;
 			dic_set(parse.prm5, packet->prm6);
 
-			if (NULL == parse.prm6) return false;
-			if (NULL == packet->prm7) return false;
+			if (NULL == parse.prm6) return;
+			if (NULL == packet->prm7) return;
 			dic_set(parse.prm6, packet->prm7);
 		}
 	}
@@ -212,6 +212,15 @@ static void bas_script_end(BAS_PACKET* packet)
 	bas_script_init();
 }
 
+//ブロードキャスト
+void bas_script_broadcast(BAS_PACKET* packet, char* to, char* resp)
+{
+	char* response_message = make_message(SELF_NAME, to, INVOKE, resp);
+	int length = strlen(response_message);
+	packet->response(response_message, length);
+	packet->broadcast(response_message, length);
+}
+
 //メッセージ通知
 static void bas_script_invoke(BAS_PACKET* packet)
 {
@@ -233,10 +242,7 @@ static void bas_script_invoke(BAS_PACKET* packet)
 	{
 		sprintf(resp, "%s.%s=%s", SELF_NAME, key, val);
 	}
-	char* response_message = make_message(SELF_NAME, to, INVOKE, resp);
-	int length = strlen(response_message);
-	packet->response(response_message, length);
-	packet->broadcast(response_message, length);
+	bas_script_broadcast(packet, to, resp);
 }
 
 static void bas_set_error(BAS_PACKET* packet, error_code err_no)
@@ -244,11 +250,8 @@ static void bas_set_error(BAS_PACKET* packet, error_code err_no)
 	char resp[PROGRAM_LINE_COUNT];
 	state.err_no = err_no;
 	//エラーをブロードキャスト
-	sprintf(resp, "%s.%s=%d", SELF_NAME, SELF_NAME, state.err_no);
-	char* response_message = make_message(SELF_NAME, SELF_NAME, INVOKE, resp);
-	int length = strlen(response_message);
-	packet->response(response_message, length);
-	packet->broadcast(response_message, length);
+	sprintf(resp, "%s.ERR_NO=%d", SELF_NAME, state.err_no);
+	bas_script_broadcast(packet, SELF_NAME, resp);
 }
 
 //遅延処理

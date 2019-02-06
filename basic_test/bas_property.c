@@ -47,15 +47,6 @@ void bas_property_init(void)
 	AD3 = 0;
 }
 
-
-static void bas_broadcast(BAS_PACKET* packet, char* resp)
-{
-	char* response_message = make_message(SELF_NAME, SELF_NAME, INVOKE, resp);
-	int length = strlen(response_message);
-	packet->response(response_message, length);
-	packet->broadcast(response_message, length);
-}
-
 //パラメータ更新
 void bas_update_status(BAS_PACKET* packet)
 {
@@ -76,11 +67,11 @@ void bas_update_status(BAS_PACKET* packet)
 	char resp[PROGRAM_LINE_COUNT];
 	//エラーをブロードキャスト
 	sprintf(resp, "%s.REFL=%d", SELF_NAME, SELF_NAME, state.err_no);
-	bas_broadcast(packet, resp);
+	bas_script_broadcast(packet, SELF_NAME, resp);
 	sprintf(resp, "%s.REFR=%d", SELF_NAME, SELF_NAME, state.err_no);
-	bas_broadcast(packet, resp);
+	bas_script_broadcast(packet, SELF_NAME, resp);
 	sprintf(resp, "%s.MOVING=%d", SELF_NAME, SELF_NAME, state.err_no);
-	bas_broadcast(packet, resp);
+	bas_script_broadcast(packet, SELF_NAME, resp);
 	*/
 }
 

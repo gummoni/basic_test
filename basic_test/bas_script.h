@@ -64,6 +64,7 @@ extern char* make_message(char* from, char* to, char cmd, char* message);
 extern void bas_script_init(void);
 extern bool bas_comm_execute(BAS_PACKET* packet);
 extern void bas_script_job(void);
+extern void bas_script_broadcast(BAS_PACKET* packet, char* to, char* resp);
 
 #endif//__BAS_SCRIPT_H__
 

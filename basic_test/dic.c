@@ -24,27 +24,27 @@ static char* internal_dic_get(char* key)
 	if (0 == strcmp(key, "MOVING"))	return itoa(MOVING, _tmp, 10);
 	if (0 == strcmp(key, "REFL"))	return itoa(REFL, _tmp, 10);
 	if (0 == strcmp(key, "REFR"))	return itoa(REFR, _tmp, 10);
-	return false;
+	return NULL;
 }
 
 //«‘İ’è
-static bool internal_dic_set(char* key, char* value)
+static char* internal_dic_set(char* key, char* value)
 {
 	if (0 == strcmp(key, "TORQUE")) {
 		bas_set_torque((0 == strcmp(value, "1") ? 1 : 0));
-		return true;
+		return value;
 	}
 	if (0 == strcmp(key, "POWER"))
 	{
 		bas_set_power((0 == strcmp(value, "1") ? 1 : 0));
-		return true;
+		return value;
 	}
 	if (0 == strcmp(key, "DIR"))
 	{
 		bas_set_dir((0 == strcmp(value, "1") ? 1 : 0));
-		return true;
+		return value;
 	}
-	return false;
+	return NULL;
 }
 
 //•Ï”‚Ì¯•ÊƒVƒ“ƒ{ƒ‹‚ğíœ
@@ -84,38 +84,40 @@ void dic_clear(void) {
 
 //«‘‚©‚ç’læ“¾
 char* dic_get(char* key) {
-	if (!internal_dic_get(key))
+	int idx = 0;
+	char * result = internal_dic_get(key);
+
+	if (NULL != result) return result;
+
+	if (search_key(key, &idx))
 	{
-		int idx = 0;
-		if (search_key(key, &idx))
-		{
-			return _dictionary[idx][DIC_IDX_VAL];
-		}
-		else
-		{
-			//–”t‚Ì‚É—ˆ‚é
-			return "\0";
-		}
+		return _dictionary[idx][DIC_IDX_VAL];
+	}
+	else
+	{
+		//–”t‚Ì‚É—ˆ‚é
+		return "\0";
 	}
 }
 
 //«‘‚É“o˜^
 char* dic_set(char* key, char* value) {
-	if (!internal_dic_set(key, value))
+	int idx = 0;
+	char* result = internal_dic_set(key, value);
+
+	if (NULL != result) return result;
+
+	if (search_key(key, &idx))
 	{
-		int idx;
-		if (search_key(key, &idx))
-		{
-			char* dic_key = _dictionary[idx][DIC_IDX_KEY];
-			char* dic_val = _dictionary[idx][DIC_IDX_VAL];
-			strcpy(dic_key, key);
-			strcpy(dic_val, value);
-			return dic_val;
-		}
-		else
-		{
-			//–”t‚Ì‚É—ˆ‚é
-			return "\0";
-		}
+		char* dic_key = _dictionary[idx][DIC_IDX_KEY];
+		char* dic_val = _dictionary[idx][DIC_IDX_VAL];
+		strcpy(dic_key, key);
+		strcpy(dic_val, value);
+		return dic_val;
+	}
+	else
+	{
+		//–”t‚Ì‚É—ˆ‚é
+		return "\0";
 	}
 }
