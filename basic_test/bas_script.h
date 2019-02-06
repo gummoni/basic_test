@@ -65,6 +65,7 @@ extern void bas_script_init(void);
 extern bool bas_comm_execute(BAS_PACKET* packet);
 extern void bas_script_job(void);
 extern void bas_script_broadcast(BAS_PACKET* packet, char* to, char* resp);
+extern bool csv_split(BAS_PACKET* packet, char* dst, char* msg);
 
 #endif//__BAS_SCRIPT_H__
 

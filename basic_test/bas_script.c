@@ -6,7 +6,7 @@
 #include "dic.h"
 #include "rpn.h"
 #include "heap.h"
-
+#include "bas_property.h"
 
 //受信バッファ
 BAS_PACKET script_packet;
@@ -60,8 +60,8 @@ static int label_search(char* label, bool* is_label)
 	return 0;
 }
 
-//スクリプト構文解析
-static bool parse_script(BAS_PACKET* packet, char* dst, char* msg)
+//スクリプト構文解析(CSV区切りを分解)
+bool csv_split(BAS_PACKET* packet, char* dst, char* msg)
 {
 	packet->prm1 = dst;
 	packet->prm2 = packet->prm3 = packet->prm4 = packet->prm5 = packet->prm6 = packet->prm7 = NULL;
@@ -81,6 +81,10 @@ static bool parse_script(BAS_PACKET* packet, char* dst, char* msg)
 		{	//区切り記号検知
 			*(dst++) = '\0';
 			*(prms++) = dst;
+		}
+		else if ('\r' == ch)
+		{
+			//スキップ
 		}
 		else if (('\n' == ch) || ('\0' == ch))
 		{	//終端
@@ -159,7 +163,7 @@ static void bas_script_goto(BAS_PACKET* packet)
 		//引数代入
 		BAS_PACKET parse;
 		parse.reciever = parse.sender = SELF_NAME;
-		if (parse_script(&parse, bas_parser.resp_buff, program_areas[state.run_no++]))
+		if (csv_split(&parse, bas_parser.resp_buff, program_areas[state.run_no++]))
 		{
 			if (NULL == parse.prm2) return;
 			if (NULL == packet->prm3) return;
@@ -270,16 +274,18 @@ static void bas_script_org(BAS_PACKET* packet)
 	case 0:
 		//原点復帰コマンド実行
 		state.stp_no = 2;
+		bas_do_abs(rpn_get_value("SPD_INITH"), HAZUSI);
 		break;
 
 	case 2:
 		//停止待ち
-		if (dic_get("REFR") == "1")
+		if (1 == REFR)
 		{
 			//ぶつかり停止
+			bas_do_stop();
 			state.err_no = err_butukari;
 		}
-		else if (dic_get("MOVING") == "0")
+		else if (0 == MOVING)
 		{
 			//停止したら原点復帰コマンド実行
 			state.stp_no = 3;
@@ -288,12 +294,13 @@ static void bas_script_org(BAS_PACKET* packet)
 
 	case 3:
 		//停止待ち
-		if (dic_get("REFL") == "1")
+		if (1 == REFL)
 		{
 			//ぶつかり停止
+			bas_do_stop();
 			state.stp_no = 0;
 		}
-		else if (dic_get("MOVING") == "0")
+		else if (0 == MOVING)
 		{
 			//停止したら原点復帰コマンド実行
 			state.stp_no = 3;
@@ -308,13 +315,14 @@ static void bas_script_abs(BAS_PACKET* packet)
 	switch (state.stp_no)
 	{
 	case 0:
-		//コマンド実行
+		//高速移動開始
 		state.stp_no = 1;
+		bas_do_abs(packet->prm2, rpn_get_value(packet->prm3));
 		break;
 
 	case 1:
 		//停止待ち
-		if (dic_get("MOVING") == "0")
+		if (0 == MOVING)
 		{
 			//停止したら終了
 			state.stp_no = 0;
@@ -329,13 +337,14 @@ static void bas_script_inc(BAS_PACKET* packet)
 	switch (state.stp_no)
 	{
 	case 0:
-		//コマンド実行
+		//高速移動開始
 		state.stp_no = 1;
+		rpn_get_value(packet->prm2, dic_get(packet->prm3));
 		break;
 
 	case 1:
 		//停止待ち
-		if (dic_get("MOVING") == "0")
+		if (0 == MOVING)
 		{
 			//停止したら終了
 			state.stp_no = 0;
@@ -347,28 +356,34 @@ static void bas_script_inc(BAS_PACKET* packet)
 //モータ停止
 static void bas_script_stop(BAS_PACKET* packet)
 {
-	//コマンド実行
+	bas_do_stop();
 }
 
 //エラー通知処理
 static void bas_script_err(BAS_PACKET* packet)
 {
-	//条件が一致したらエラー設定
 	if (rpn_judge(packet))
 	{
+		//条件が一致したらエラー確定
 		bas_set_error(packet, strtol(packet->prm3, NULL, 0));
 	}
 }
 
+//パラメータ:Z1, Z2, 圧入PLS, WAIT
 static void bas_script_tipon(BAS_PACKET* packet)
 {
-
 	switch (state.stp_no)
 	{
 	case 0:
 		//初期化
 		state.timer_count = -1;
 		//Z1移動コマンド実行
+		bas_do_abs(dic_get("SPD_HIGH"), strtol(packet->prm2, NULL, 0));	//Z1移動
+
+		bas_do_inc(dic_get("SPD_HIGH"), strtol(packet->prm3, NULL, 0));	//Z2移動
+		bas_do_inc(dic_get("SPD_SLOW"), strtol(packet->prm4, NULL, 0));	//圧入
+		//WAIT
+		bas_do_org(dic_get("SPD_INITL"), dic_get("LIMIT"));
 		state.stp_no = 2;
 		break;
 
@@ -548,7 +563,7 @@ void bas_script_job(void)
 		if ((0 != state.err_no) || (10 > state.run_no)) return;					//プログラム実行中かどうか判別
 		char* msg = program_areas[state.run_no];								//プログラムコード取得
 		if ('*' == msg[0]) continue;											//ラベルならスキップ
-		if (!parse_script(&script_packet, bas_parser.parse_buff, msg)) return;	//プログラム番地のコードを解析
+		if (!csv_split(&script_packet, bas_parser.parse_buff, msg)) return;		//プログラム番地のコードを解析
 		if (!bas_script_execute(&script_packet)) return;						//実行
 	}
 }

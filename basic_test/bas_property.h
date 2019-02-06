@@ -15,14 +15,14 @@ extern ushort AD3;		// AD3フィルタ値
 extern bool MOVING;		// 移動状態
 extern bool REFL;		// 左原点
 extern bool REFR;		// 右原点
-
+extern int LIMIT;		// 最大移動量
+extern int HAZUSI;		// 原点外しパルス
 
 //スクリプトから操作可能な関数一覧
 extern void bas_property_init(void);
 extern void bas_update_status(BAS_PACKET* packet);
-extern void bas_set_speed(int l, int h, int up, int dn);
-extern void bas_do_abs(int pls);
-extern void bas_do_inc(int pls);
+extern void bas_do_abs(char* speed, int pls);
+extern void bas_do_inc(char* speed, int pls);
 extern void bas_do_stop(void);
 extern void bas_set_power(byte value);
 extern void bas_set_torque(bool sw);

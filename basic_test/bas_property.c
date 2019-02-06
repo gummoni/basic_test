@@ -15,6 +15,8 @@ ushort AD3;		// AD3フィルタ値
 bool TORQUE;	// false=OFF, true=ON
 bool DIR;		// false=正転,true=逆転
 byte POWER;		// 0=出力0%、100=出力100% --->将来的にはアンペア（A)表記にする
+int LIMIT;		// 最大移動量
+int HAZUSI;		// 原点外しパルス
 
 //読込み専用（通知あり）
 bool MOVING;	// 移動状態
@@ -76,25 +78,36 @@ void bas_update_status(BAS_PACKET* packet)
 }
 
 //速度設定
-void bas_set_speed(int l, int h, int up, int dn)
+static void bas_set_speed(char* speed)
 {
+	BAS_PACKET packet;
+	if (!csv_split(&packet, bas_parser.resp_buff, speed)) return;
+	//TODO:速度書込み
 }
 
-//移動コマンド
-void bas_do_abs(int pls)
+static void bas_set_position(int pls)
 {
-	//TODO
+	//ポジション書込み
 }
 
-//移動コマンド
-void bas_do_inc(int pls)
+//移動コマンド(絶対値)
+void bas_do_abs(char* speed, int pls)
 {
-	//TODO
+	bas_set_speed(speed);
+	bas_set_position(pls);
+}
+
+//移動コマンド（相対値）
+void bas_do_inc(char* speed, int pls)
+{
+	bas_set_speed(speed);
+	bas_set_position(POS + pls);
 }
 
 //停止コマンド
 void bas_do_stop(void)
 {
+	//TODO
 }
 
 //出力設定
