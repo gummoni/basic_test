@@ -55,6 +55,10 @@ typedef enum
 	err_too_long = 3,		//文字列長さオーバー
 	err_parse,				//パースエラー
 	err_var_full,			//辞書オーバー
+
+	err_butukari,			//ぶつかりエラー
+	err_org,				//原点未検知
+	err_tumari,				//詰まり検知エラー
 } error_code;
 
 //動作状態

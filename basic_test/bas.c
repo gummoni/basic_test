@@ -52,8 +52,21 @@ void bas_init(void)
 	{
 		program_areas[i][0] = '\0';
 	}
+	//テスト用に設定>>>>>>>>>>>>>>>
 	strcpy(program_areas[0], "AXIS_Z1");
 	strcpy(program_areas[1], "AXIS_Z");
+	//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+	//辞書初期化
+	dic_set("AD1PRM", "0 0 0 0");	// AD1フィルタ
+	dic_set("AD2PRM", "0 0 0 0");	// AD2フィルタ
+	dic_set("AD3PRM", "0 0 0 0");	// AD3フィルタ
+	dic_set("LIMIT", "10000");		// 原点位置
+	dic_set("SPD_ORGL", "0 0 0 0");	// 原点復帰速度（高速）
+	dic_set("SPD_ORGH", "0 0 0 0");	// 原点復帰速度（低速）
+	dic_set("SPD_HIGH", "0 0 0 0");	// 速度（高速）
+	dic_set("SPD_LOW", "0 0 0 0");	// 速度（低速）
+	dic_set("SPD_SLOW", "0 0 0 0");	// 速度（最低速）
 
 	//上位通信用
 	clear_packet(&packet_up);
@@ -78,7 +91,7 @@ void bas_init(void)
 //TODO:データ取得は別ドライバで行う
 void bas_job(void)
 {
-	bas_property_job(&packet_up);										//自発的通知
+	bas_update_status(&packet_up);										//自発的通知
 	bas_script_job();													//スクリプト処理
 	bas_comm_job(&packet_up);											//上位通信ポート受信解析
 	bas_comm_job(&packet_dn);											//下位通信ポート受信解析

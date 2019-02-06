@@ -128,7 +128,7 @@ void bas_script_init(void)
 }
 
 //IF文
-static bool bas_script_if(BAS_PACKET* packet)
+static void bas_script_if(BAS_PACKET* packet)
 {
 	bool is_label;
 	if (rpn_judge(packet))
@@ -146,11 +146,10 @@ static bool bas_script_if(BAS_PACKET* packet)
 			if (is_label) state.run_no++;
 		}
 	}
-	return true;
 }
 
 //GOTO文
-static bool bas_script_goto(BAS_PACKET* packet)
+static void bas_script_goto(BAS_PACKET* packet)
 {
 	bool is_label;
 	state.run_no = label_search(packet->prm2, &is_label);
@@ -183,11 +182,10 @@ static bool bas_script_goto(BAS_PACKET* packet)
 			dic_set(parse.prm6, packet->prm7);
 		}
 	}
-	return true;
 }
 
 //GOSUB文
-static bool bas_script_gosub(BAS_PACKET* packet)
+static void bas_script_gosub(BAS_PACKET* packet)
 {
 	if (heap_enqueue(state.run_no))
 	{
@@ -197,36 +195,33 @@ static bool bas_script_gosub(BAS_PACKET* packet)
 	{
 		state.err_no = err_out_of_return;
 	}
-	return true;
 }
 
 //RETURN文
-static bool bas_script_return(BAS_PACKET* packet)
+static void bas_script_return(BAS_PACKET* packet)
 {
 	if (!heap_dequeue(&state.run_no))
 	{
 		//戻り先がないのでEND扱い
 		bas_script_init();
 	}
-	return true;
 }
 
-static bool bas_script_end(BAS_PACKET* packet)
+static void bas_script_end(BAS_PACKET* packet)
 {
 	bas_script_init();
-	return true;
 }
 
 //メッセージ通知
-static bool bas_script_invoke(BAS_PACKET* packet)
+static void bas_script_invoke(BAS_PACKET* packet)
 {
-	char resp[32];
+	char resp[PROGRAM_LINE_COUNT];
 	char* to = packet->prm1;
 	char* key = packet->prm3;
 	if (key == NULL)
 	{
 		state.err_no = err_null;
-		return false;
+		return;
 	}
 	char* val = rpn_get_value(key);
 	int len = strlen(key);
@@ -242,51 +237,253 @@ static bool bas_script_invoke(BAS_PACKET* packet)
 	int length = strlen(response_message);
 	packet->response(response_message, length);
 	packet->broadcast(response_message, length);
-	return true;
+}
+
+static void bas_set_error(BAS_PACKET* packet, error_code err_no)
+{
+	char resp[PROGRAM_LINE_COUNT];
+	state.err_no = err_no;
+	//エラーをブロードキャスト
+	sprintf(resp, "%s.%s=%d", SELF_NAME, SELF_NAME, state.err_no);
+	char* response_message = make_message(SELF_NAME, SELF_NAME, INVOKE, resp);
+	int length = strlen(response_message);
+	packet->response(response_message, length);
+	packet->broadcast(response_message, length);
 }
 
 //遅延処理
-static bool bas_script_delay(BAS_PACKET* packet)
+static void bas_script_delay(BAS_PACKET* packet)
 {
-	return true;														//TODO
+	state.stp_no = (0 < state.timer_count) ? 1 : 0;
 }
 
 //------------------------------拡張ここから------------------------------
 
 //原点復帰
-static bool bas_script_org(BAS_PACKET* packet)
+static void bas_script_org(BAS_PACKET* packet)
 {
-	return true;														//TODO
+	switch (state.stp_no)
+	{
+	case 0:
+		//原点復帰コマンド実行
+		state.stp_no = 2;
+		break;
+
+	case 2:
+		//停止待ち
+		if (dic_get("REFR") == "1")
+		{
+			//ぶつかり停止
+			state.err_no = err_butukari;
+		}
+		else if (dic_get("MOVING") == "0")
+		{
+			//停止したら原点復帰コマンド実行
+			state.stp_no = 3;
+		}
+		break;
+
+	case 3:
+		//停止待ち
+		if (dic_get("REFL") == "1")
+		{
+			//ぶつかり停止
+			state.stp_no = 0;
+		}
+		else if (dic_get("MOVING") == "0")
+		{
+			//停止したら原点復帰コマンド実行
+			state.stp_no = 3;
+		}
+		break;
+	}
 }
 
 //絶対値移動
-static bool bas_script_abs(BAS_PACKET* packet)
+static void bas_script_abs(BAS_PACKET* packet)
 {
-	return true;														//TODO
+	switch (state.stp_no)
+	{
+	case 0:
+		//コマンド実行
+		state.stp_no = 1;
+		break;
+
+	case 1:
+		//停止待ち
+		if (dic_get("MOVING") == "0")
+		{
+			//停止したら終了
+			state.stp_no = 0;
+		}
+		break;
+	}
 }
 
 //相対値移動
-static bool bas_script_inc(BAS_PACKET* packet)
+static void bas_script_inc(BAS_PACKET* packet)
 {
-	return true;														//TODO
+	switch (state.stp_no)
+	{
+	case 0:
+		//コマンド実行
+		state.stp_no = 1;
+		break;
+
+	case 1:
+		//停止待ち
+		if (dic_get("MOVING") == "0")
+		{
+			//停止したら終了
+			state.stp_no = 0;
+		}
+		break;
+	}
 }
 
 //モータ停止
-static bool bas_script_stop(BAS_PACKET* packet)
+static void bas_script_stop(BAS_PACKET* packet)
 {
-	return true;														//TODO
-}
-
-//エラーチェック処理
-static bool bas_script_check(BAS_PACKET* packet)
-{
-	return true;														//TODO
+	//コマンド実行
 }
 
 //エラー通知処理
-static bool bas_script_err(BAS_PACKET* packet)
+static void bas_script_err(BAS_PACKET* packet)
 {
-	return true;														//TODO
+	//条件が一致したらエラー設定
+	if (rpn_judge(packet))
+	{
+		bas_set_error(packet, strtol(packet->prm3, NULL, 0));
+	}
+}
+
+static void bas_script_tipon(BAS_PACKET* packet)
+{
+
+	switch (state.stp_no)
+	{
+	case 0:
+		//初期化
+		state.timer_count = -1;
+		//Z1移動コマンド実行
+		state.stp_no = 2;
+		break;
+
+	case 2:	
+		//Z1移動完了待ち
+		if (dic_get("MOVING") == "0")
+		{
+			//Z1移動完了
+			if (0 > state.timer_count)
+			{
+				//タイマー設定
+				state.timer_count = 100;
+			}
+			if (0 == state.timer_count)
+			{
+				//タイマーカウントアップ
+				state.stp_no = 3;
+				//Z2移動コマンド実行
+			}
+		}
+		break;
+
+	case 3:	
+		//Z2移動
+		if (dic_get("MOVING") == "0")
+		{
+			//Z2移動完了
+			if (0 > state.timer_count)
+			{
+				//タイマー設定
+				state.timer_count = 100;
+			}
+			if (0 == state.timer_count)
+			{
+				//タイマーカウントアップ
+				state.stp_no = 3;
+				//Z2移動コマンド実行
+			}
+		}
+		break;
+
+	case 4:	//Z圧入
+	case 5:	//原点復帰
+
+
+		//動作完了
+		if (dic_get("REFR") == "1")
+		{
+			//ぶつかり停止
+			state.err_no = err_butukari;
+		}
+		else if (dic_get("MOVING") == "0")
+		{
+			//停止したら原点復帰コマンド実行
+			state.stp_no = 3;
+		}
+		break;
+	}
+}
+
+static void bas_script_kin1(BAS_PACKET* packet)
+{
+	switch (state.stp_no)
+	{
+	case 0:
+		//動作開始コマンド送信
+		state.stp_no = 1;
+		break;
+	case 1:
+		//動作完了
+		state.stp_no = 0;
+		break;
+	}
+}
+
+static void bas_script_kin2(BAS_PACKET* packet)
+{
+	switch (state.stp_no)
+	{
+	case 0:
+		//動作開始コマンド送信
+		state.stp_no = 1;
+		break;
+	case 1:
+		//動作完了
+		state.stp_no = 0;
+		break;
+	}
+}
+
+static void bas_script_kout(BAS_PACKET* packet)
+{
+	switch (state.stp_no)
+	{
+	case 0:
+		//動作開始コマンド送信
+		state.stp_no = 1;
+		break;
+	case 1:
+		//動作完了
+		state.stp_no = 0;
+		break;
+	}
+}
+
+static void bas_script_tipoff(BAS_PACKET* packet)
+{
+	switch (state.stp_no)
+	{
+	case 0:
+		//動作開始コマンド送信
+		state.stp_no = 1;
+		break;
+	case 1:
+		//動作完了
+		state.stp_no = 0;
+		break;
+	}
 }
 
 //------------------------------拡張ここまで------------------------------
@@ -302,7 +499,6 @@ static BAS_SCRIPT_TABLE script_command_table[SCRIPT_COMMAND_TABLE_LENGTH] =
 	{ "END"		, bas_script_end		},	//4
 	{ "INVOKE"	, bas_script_invoke		},	//5
 	{ "DELAY"	, bas_script_delay		},	//6
-	{ "CHK"		, bas_script_check		},	//7
 	{ "ERR"		, bas_script_err		},	//8
 	//----拡張命令（PB210）---
 	{ "ORG"		, bas_script_org		},	//9
@@ -321,7 +517,18 @@ static bool bas_script_execute(BAS_PACKET* packet)
 		BAS_SCRIPT_TABLE command = script_command_table[i];
 		if (0 == strcmp(packet->prm1, command.name))
 		{
-			return command.execute(packet);
+			command.execute(packet);
+			if (0 == state.stp_no)
+			{
+				//動作完了
+				state.run_no++;
+				return true;
+			}
+			else
+			{
+				//実行中
+				return false;
+			}
 		}
 	}
 
@@ -336,7 +543,7 @@ void bas_script_job(void)
 	{
 		printf("%d\n", state.run_no);
 		if ((0 != state.err_no) || (10 > state.run_no)) return;					//プログラム実行中かどうか判別
-		char* msg = program_areas[state.run_no++];								//プログラムコード取得
+		char* msg = program_areas[state.run_no];								//プログラムコード取得
 		if ('*' == msg[0]) continue;											//ラベルならスキップ
 		if (!parse_script(&script_packet, bas_parser.parse_buff, msg)) return;	//プログラム番地のコードを解析
 		if (!bas_script_execute(&script_packet)) return;						//実行

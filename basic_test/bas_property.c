@@ -1,31 +1,25 @@
-//ハードウェア変化通知処理
 #include "config.h"
 #include "bas_property.h"
+#include "bas_script.h"
 
-static char* notify_queue[10];
-static byte notify_idx = 0;
+//読込み専用（通知なし）
+int POS;		// 現在位置
+int SPD;		// 現在速度
+int ENC;		// エンコーダ値
+ushort AD0;		// AD値直値
+ushort AD1;		// AD1フィルタ値
+ushort AD2;		// AD2フィルタ値
+ushort AD3;		// AD3フィルタ値
 
-//読込み専用(通知なし）
-static int pos;						//現在位置（パルス）
-static int spd;						//現在速度（速度）
-static int enc;						//現在位置（エンコーダ）
-static ushort ad_row_val;			//AD値（直値）
-static ushort ad_kin1_val;			//AD1値（フィルタ１）
-static ushort ad_kin2_val;			//AD2値（フィルタ２）
-static ushort ad_kin3_val;			//AD3値（フィルタ３）
-
-//読み書きOK（通知なし）
-static byte output;					//出力OFF/ON(0=OFF, 1=ON)
-static byte power;					//最大出力(0-100, 0=0%, 100=100%)
-static byte dir;					//方向(0=正転, 1=反転)
-static char ad_kin1_filter[16];		//ADフィルタ1パラメータ
-static char ad_kin2_filter[16];		//ADフィルタ2パラメータ
-static char ad_kin3_filter[16];		//ADフィルタ3パラメータ
+//読み書き可能：フラグ（通知なし）
+bool TORQUE;	// false=OFF, true=ON
+bool DIR;		// false=正転,true=逆転
+byte POWER;		// 0=出力0%、100=出力100% --->将来的にはアンペア（A)表記にする
 
 //読込み専用（通知あり）
-static byte moving;					//移動中(0=停止、1=動作中)
-static byte refl;					//原点センサ(0=原点スイッチOFF　　、1=原点スイッチON）
-static byte refr;					//原点センサ(0=スイッチリミットOFF、1=スイッチリミットON）
+bool MOVING;	// 移動状態
+bool REFL;		// 左原点
+bool REFR;		// 右原点
 
 //TORQUE=1
 //POWER=100
@@ -37,43 +31,99 @@ static byte refr;					//原点センサ(0=スイッチリミットOFF、1=スイッチリミットON）
 //REFL
 //REFR
 
-//通知処理(変化があれば通知)
-void bas_property_job(BAS_PACKET* packet)
+
+//初期化
+void bas_property_init(void)
 {
+	TORQUE = false;
+	DIR = false;
+	POWER = 0;
+	POS = 0;
+	SPD = 0;
+	ENC = 0;
+	AD0 = 0;
+	AD1 = 0;
+	AD2 = 0;
+	AD3 = 0;
+}
+
+
+static void bas_broadcast(BAS_PACKET* packet, char* resp)
+{
+	char* response_message = make_message(SELF_NAME, SELF_NAME, INVOKE, resp);
+	int length = strlen(response_message);
+	packet->response(response_message, length);
+	packet->broadcast(response_message, length);
+}
+
+//パラメータ更新
+void bas_update_status(BAS_PACKET* packet)
+{
+	//----TMC5130パラメータ----
+	//現在位置取得
+	//現在エンコーダ値取得
+	//現在速度取得
+	//AD値取得
+	//AD1フィルタ値算出
+	//AD2フィルタ値算出
+	//AD3フィルタ値算出
+	//移動状態
+	//REFL
+	//REFR
+	//エラー
+
 	/*
-	ushort _ad_val;
-	ushort _status;
-	ushort _pos;
-	ushort _enc;
-
-	byte _refl = (_status & 0x01) ? 1 : 0;
-	byte _refr = (_status & 0x01) ? 1 : 0;
-	byte _moving = (_status & 0x01) ? 1 : 0;
-
-	bool change_moving = pos != _pos;
-	bool change_refl = refl != _refl;
-	bool change_refr = refr != _refr;
-
-	pos = _pos;
-	moving = _moving;
-	refl = _refl;
-	refr = _refr;
-	ad_row_val = _ad_val;
-
-	if (change_refl)
-	{
-		sprintf(hw_buff, "%s.REFL=%d", SELF_NAME, refl);
-		make_message(SELF_NAME, SELF_NAME, INVOKE, hw_buff);
-	}
-	if (change_refr)
-	{
-		sprintf(hw_buff, "%s.REFR=%d", SELF_NAME, refr);
-		make_message(SELF_NAME, SELF_NAME, INVOKE, hw_buff);
-	}
-	if (change_moving)
-	{
-		sprintf(hw_buff, "%s.MOVING=%d", SELF_NAME, moving);
-		make_message(SELF_NAME, SELF_NAME, INVOKE, hw_buff);
-	}
+	char resp[PROGRAM_LINE_COUNT];
+	//エラーをブロードキャスト
+	sprintf(resp, "%s.REFL=%d", SELF_NAME, SELF_NAME, state.err_no);
+	bas_broadcast(packet, resp);
+	sprintf(resp, "%s.REFR=%d", SELF_NAME, SELF_NAME, state.err_no);
+	bas_broadcast(packet, resp);
+	sprintf(resp, "%s.MOVING=%d", SELF_NAME, SELF_NAME, state.err_no);
+	bas_broadcast(packet, resp);
 	*/
 }
+
+//速度設定
+void bas_set_speed(int l, int h, int up, int dn)
+{
+}
+
+//移動コマンド
+void bas_do_abs(int pls)
+{
+	//TODO
+}
+
+//移動コマンド
+void bas_do_inc(int pls)
+{
+	//TODO
+}
+
+//停止コマンド
+void bas_do_stop(void)
+{
+}
+
+//出力設定
+void bas_set_power(byte value)
+{
+	POWER = value;
+	//TODO
+}
+
+//トルクOFF/ON
+void bas_set_torque(bool sw)
+{
+	TORQUE = sw;
+	//TODO
+}
+
+//極性設定
+void bas_set_dir(bool value)
+{
+	DIR = value;
+	//TODO
+}
+

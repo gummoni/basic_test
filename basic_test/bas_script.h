@@ -52,7 +52,7 @@ typedef struct
 typedef struct
 {
 	char* name;
-	bool(*execute)(BAS_PACKET*);
+	void(*execute)(BAS_PACKET*);
 } BAS_SCRIPT_TABLE;
 
 
