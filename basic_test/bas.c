@@ -61,12 +61,14 @@ void bas_init(void)
 	dic_set("AD1PRM", "0 0 0 0");	// AD1フィルタ
 	dic_set("AD2PRM", "0 0 0 0");	// AD2フィルタ
 	dic_set("AD3PRM", "0 0 0 0");	// AD3フィルタ
-	dic_set("LIMIT", "10000");		// 原点位置
+	dic_set("LIMIT", "10000");		// 最大移動量
+	dic_set("HAZUSI", "2000");		// 原点位置外しパルス
 	dic_set("SPD_ORGL", "0 0 0 0");	// 原点復帰速度（高速）
 	dic_set("SPD_ORGH", "0 0 0 0");	// 原点復帰速度（低速）
 	dic_set("SPD_HIGH", "0 0 0 0");	// 速度（高速）
 	dic_set("SPD_LOW", "0 0 0 0");	// 速度（低速）
 	dic_set("SPD_SLOW", "0 0 0 0");	// 速度（最低速）
+	dic_set("NOZLE", "S0.REFR");
 
 	//上位通信用
 	clear_packet(&packet_up);

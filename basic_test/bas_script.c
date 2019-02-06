@@ -274,7 +274,7 @@ static void bas_script_org(BAS_PACKET* packet)
 	case 0:
 		//原点復帰コマンド実行
 		state.stp_no = 2;
-		bas_do_abs(rpn_get_value("SPD_INITH"), HAZUSI);
+		bas_do_abs(rpn_get_value("SPD_ORGH"), HAZUSI);
 		break;
 
 	case 2:
@@ -379,11 +379,22 @@ static void bas_script_tipon(BAS_PACKET* packet)
 		state.timer_count = -1;
 		//Z1移動コマンド実行
 		bas_do_abs(dic_get("SPD_HIGH"), strtol(packet->prm2, NULL, 0));	//Z1移動
+		if ("1" == rpn_get_value("NOZLE"))
+		{
+			//ノズル検知
+			bas_do_stop();
+			bas_set_error(packet, err_butukari);
+		}
+		else if (MOVING == 0)
+		{
+			//動作完了次へ
+			state.run_no = 1;
+			bas_do_inc(dic_get("SPD_HIGH"), strtol(packet->prm3, NULL, 0));	//Z2移動
+		}
 
-		bas_do_inc(dic_get("SPD_HIGH"), strtol(packet->prm3, NULL, 0));	//Z2移動
 		bas_do_inc(dic_get("SPD_SLOW"), strtol(packet->prm4, NULL, 0));	//圧入
 		//WAIT
-		bas_do_org(dic_get("SPD_INITL"), dic_get("LIMIT"));
+		bas_do_org(dic_get("SPD_ORGL"), dic_get("LIMIT"));
 		state.stp_no = 2;
 		break;
 
